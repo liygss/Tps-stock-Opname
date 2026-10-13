@@ -1,23 +1,24 @@
 # PT TPS Stock Opname (Supabase)
 
 Aplikasi Stock Opname dengan database **Supabase** (Postgres + Storage).
-Frontend statis di `public/`, skema database di `supabase/schema.sql`.
+Frontend statis di root repo, skema database di `supabase/schema.sql`.
 
 ## Struktur
 
 ```
-public/
-  index.html          shell halaman
-  css/style.css
-  js/config.js        -> isi URL & anon key Supabase
-  js/db.js            lapisan data (items, so, foto, realtime)
-  js/export.js        export Excel/PDF + template impor
-  js/ui.js            helper DOM + toast + modal
-  js/logo.js          logo (base64)
-  js/app.js           UI + logika aplikasi
-supabase/
-  schema.sql          tabel, index, RLS, bucket storage
+index.html            shell halaman
+css/style.css
+js/config.js          -> isi URL & anon key Supabase
+js/db.js              lapisan data (items, so, foto, realtime)
+js/export.js          export Excel/PDF + template impor
+js/ui.js              helper DOM + toast + modal
+js/logo.js            logo (base64)
+js/app.js             UI + logika aplikasi
+supabase/schema.sql   tabel, index, RLS, bucket storage
 ```
+
+Deploy ke Vercel cukup import repo ini (framework preset **Other**, tanpa build) —
+root repo otomatis disajikan.
 
 ## Setup
 
@@ -25,20 +26,21 @@ supabase/
 2. Buka **SQL Editor**, tempel isi `supabase/schema.sql`, lalu **Run**.
    Ini membuat tabel `items` & `so`, mengaktifkan realtime, dan membuat bucket storage `foto`.
 3. Buka **Project Settings > API**, salin **Project URL** dan **anon public key**.
-4. Isi `public/js/config.js`:
-   ```js
-   export const SUPABASE_URL = 'https://xxxx.supabase.co';
-   export const SUPABASE_ANON_KEY = 'eyJ...';
-   ```
+4. Isi `js/config.js`:
+
+```js
+export const SUPABASE_URL = 'https://xxxx.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJ...';
+```
 
 ## Menjalankan
 
 Aplikasi memakai ES modules, jadi harus diakses lewat web server (bukan `file://`):
 
 ```bash
-npx serve public
+npx serve
 # atau
-python3 -m http.server 8080 --directory public
+python3 -m http.server 8080
 ```
 
 Lalu buka `http://localhost:8080` (atau port yang ditampilkan).

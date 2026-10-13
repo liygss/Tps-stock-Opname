@@ -14,14 +14,15 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 async function save(c, o) {
   const i = S[c].findIndex((x) => x.id == o.id);
   i < 0 ? S[c].push(o) : (S[c][i] = o);
-  try { await db.save(c, o); } catch (e) { toast('Gagal menyimpan ke database'); }
+  try { await db.save(c, o); } catch (e) { toast('Gagal menyimpan: ' + errMsg(e)); }
   go();
 }
 async function del(c, id) {
   S[c] = S[c].filter((x) => x.id != id);
-  try { await db.del(c, id); } catch (e) { toast('Gagal menghapus data'); }
+  try { await db.del(c, id); } catch (e) { toast('Gagal menghapus: ' + errMsg(e)); }
   go();
 }
+const errMsg = (e) => (e && (e.message || e.hint || e.details || e.code)) || String(e || 'tidak diketahui');
 
 async function boot() {
   try {
@@ -29,7 +30,7 @@ async function boot() {
     S.items = data.items;
     S.so = data.so;
   } catch (e) {
-    toast('Gagal memuat data. Periksa config.js dan koneksi internet.');
+    toast('Gagal memuat data: ' + errMsg(e) + ' — periksa js/config.js');
   }
   db.subscribeAll(reload);
   go();
