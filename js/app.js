@@ -83,7 +83,7 @@ function delItem() {
 
 /* ================= Export menu ================= */
 function expMenu(k) { modal('Pilih Format Export', `<p class="hint">Pilih format file untuk ${k == 'so' ? 'data Stock Opname' : 'Data Barang'}.</p><div class="bar" style="margin-top:12px"><button class="g" onclick="doExp('${k}','x')">Export Excel (.xlsx)</button><button class="d" onclick="doExp('${k}','p')">Export PDF</button><button class="s" onclick="closeM()">Batal</button></div>`); }
-function doExp(k, f) { closeM(); if (k == 'so') { f == 'x' ? xlSO(S.so, S.items) : pdfSO(S.so, S.items); } else { f == 'x' ? xlItems(S.items) : pdfItems(S.items); } }
+function doExp(k, f) { closeM(); const p = k == 'so' ? (f == 'x' ? xlSO(S.so, S.items) : pdfSO(S.so, S.items)) : (f == 'x' ? xlItems(S.items) : pdfItems(S.items)); Promise.resolve(p).catch((e) => toast('Export gagal: ' + (e.message || e))); }
 
 /* ================= Impor ================= */
 const NK = { kode: ['kode', 'kodebarang'], akun: ['akun', 'kodeakun'], nama: ['nama', 'namabarang'], kat: ['kat', 'kategori'], satuan: ['satuan', 'sat'], gudang: ['gudang'], lokasi: ['lokasi', 'lokasipenyimpanan'] };
