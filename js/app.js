@@ -194,8 +194,8 @@ function so() {
   const L = S.so.filter((s) => !qs || (s.kode + s.nama + s.no).toLowerCase().includes(qs.toLowerCase())).sort((a, b) => b.tgl.localeCompare(a.tgl));
   const gd = [...new Set(S.items.map((i) => i.gudang).filter(Boolean))];
   const no = c.no || 'SO-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + String(S.so.length + 1).padStart(3, '0');
-  return `<div class="card"><div class="ch"><h3>${c.id ? 'Ubah' : 'Form'} Stock Opname</h3>${c.id ? `<button class="x" title="Kembali" aria-label="Kembali" onclick="closeSO()">✕</button>` : ''}</div><div class="form">${fld('Nomor Stock Opname', 's_no', no)}${fld('Tanggal & Waktu', 's_tgl', c.tgl || nowL(), 'datetime-local')}${fld('Kode Akun (otomatis dari Data Barang)', 's_akun', c.akun, 'text', 'readonly')}<div><label>Gudang</label><input id="s_gd" list="gl" value="${E(c.gudang)}"><datalist id="gl">${gd.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><div><label>Kode Barang</label><input id="s_kode" list="kl" value="${E(c.kode)}" onchange="fill()" placeholder="Ketik / pilih kode"><datalist id="kl">${S.items.map((i) => `<option value="${E(i.kode)}">${E(i.nama)}</option>`).join('')}</datalist></div>${fld('Nama Barang', 's_nama', c.nama, 'text', 'readonly')}${fld('Satuan', 's_sat', c.satuan, 'text', 'readonly')}${fld('Stok Fisik', 's_fisik', c.fisik, 'number', 'min="0" step="any"')}<div><label>Foto Fisik Barang</label><input id="s_foto" type="file" accept="image/jpeg,image/png,image/webp" onchange="pv(this.files[0])"><img id="pv" src="${E(c.foto)}" style="margin-top:8px;max-height:130px;border-radius:6px;display:${c.foto ? 'block' : 'none'}"><div class="bar" style="margin-top:8px"><button type="button" class="s" onclick="dlFotoForm()">Download Foto</button></div></div></div><div class="bar" style="margin-top:14px"><button onclick="saveSO()">Simpan</button><button class="s" onclick="closeSO()">Baru / Batal</button></div></div>
-  <div class="card"><div class="bar"><input id="qs" placeholder="Cari nomor / kode / nama" value="${E(qs)}" oninput="setQs(this.value)"><button class="g" onclick="expMenu('so')">Export</button></div>${tbl(['Nomor', 'Tanggal', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto', ''], L.map((s) => `<tr><td>${E(s.no)}</td><td>${fmt(s.tgl)}</td><td>${E(s.akun || itm(s.kode)?.akun)}</td><td>${E(s.gudang)}</td><td>${E(s.kode)}</td><td>${E(s.nama)}</td><td><b>${E(s.fisik)}</b></td><td>${E(s.satuan)}</td><td>${s.foto ? `<a href="${E(s.foto)}" onclick="dlFotoSO('${s.id}');return false" title="Download foto"><img class="thumb" src="${E(s.foto)}" alt="foto"></a>` : '-'}</td><td style="white-space:nowrap"><button class="s" onclick="editSO('${s.id}')">Ubah</button> <button class="d" onclick="delSO('${s.id}')">Hapus</button></td></tr>`))}</div>`;
+  return `<div class="card"><div class="ch"><h3>${c.id ? 'Ubah' : 'Form'} Stock Opname</h3>${c.id ? `<button class="x" title="Kembali" aria-label="Kembali" onclick="closeSO()">✕</button>` : ''}</div><div class="form">${fld('Nomor Stock Opname', 's_no', no)}${fld('Tanggal & Waktu', 's_tgl', c.tgl || nowL(), 'datetime-local')}${fld('Kode Akun (otomatis dari Data Barang)', 's_akun', c.akun, 'text', 'readonly')}<div><label>Gudang</label><input id="s_gd" list="gl" value="${E(c.gudang)}"><datalist id="gl">${gd.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><div><label>Kode Barang</label><input id="s_kode" list="kl" value="${E(c.kode)}" onchange="fill()" placeholder="Ketik / pilih kode"><datalist id="kl">${S.items.map((i) => `<option value="${E(i.kode)}">${E(i.nama)}</option>`).join('')}</datalist></div>${fld('Nama Barang', 's_nama', c.nama, 'text', 'readonly')}${fld('Satuan', 's_sat', c.satuan, 'text', 'readonly')}${fld('Stok Fisik', 's_fisik', c.fisik, 'number', 'min="0" step="any"')}<div><label>Foto Fisik Barang</label><input id="s_foto" type="file" accept="image/jpeg,image/png,image/webp" onchange="pv(this.files[0])"><img id="pv" src="${E(c.foto)}" style="margin-top:8px;max-height:130px;border-radius:6px;cursor:pointer;display:${c.foto ? 'block' : 'none'}" onclick="pvZoom()" title="Klik untuk perbesar"><div class="bar" style="margin-top:8px"><button type="button" class="s" onclick="dlFotoForm()">Download Foto</button></div></div></div><div class="bar" style="margin-top:14px"><button onclick="saveSO()">Simpan</button><button class="s" onclick="closeSO()">Baru / Batal</button></div></div>
+  <div class="card"><div class="bar"><input id="qs" placeholder="Cari nomor / kode / nama" value="${E(qs)}" oninput="setQs(this.value)"><button class="g" onclick="expMenu('so')">Export</button></div>${tbl(['Nomor', 'Tanggal', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto', ''], L.map((s) => `<tr><td>${E(s.no)}</td><td>${fmt(s.tgl)}</td><td>${E(s.akun || itm(s.kode)?.akun)}</td><td>${E(s.gudang)}</td><td>${E(s.kode)}</td><td>${E(s.nama)}</td><td><b>${E(s.fisik)}</b></td><td>${E(s.satuan)}</td><td>${s.foto ? `<a href="${E(s.foto)}" onclick="viewFoto('${s.id}');return false" title="Lihat foto"><img class="thumb" src="${E(s.foto)}" alt="foto"></a>` : '-'}</td><td style="white-space:nowrap"><button class="s" onclick="editSO('${s.id}')">Ubah</button> <button class="d" onclick="delSO('${s.id}')">Hapus</button></td></tr>`))}</div>`;
 }
 
 function fill() {
@@ -229,6 +229,19 @@ function dlFotoSO(id) {
   if (s && s.foto) downloadPhoto(s.foto, 'foto-' + (s.no || id));
   else toast('Foto tidak tersedia');
 }
+function fotoModal(title, url, onDl, origUrl) {
+  modal(title, `<img src="${E(url)}" alt="foto" style="max-width:100%;max-height:62vh;border-radius:8px;display:block;margin:0 auto"><div class="bar" style="justify-content:center;margin-top:12px"><button class="g" onclick="${onDl};closeM()">Download</button>${origUrl ? `<a class="abtn" href="${E(origUrl)}" target="_blank" rel="noopener">Buka Asli</a>` : ''}<button class="s" onclick="closeM()">Tutup</button></div>`);
+}
+function viewFoto(id) {
+  const s = S.so.find((x) => x.id == id);
+  if (!s || !s.foto) return toast('Foto tidak tersedia');
+  fotoModal('Foto — ' + (s.no || s.kode || ''), s.foto, `dlFotoSO('${s.id}')`, s.foto);
+}
+function pvZoom() {
+  const url = pf ? URL.createObjectURL(pf) : (cur.foto || '');
+  if (!url) return toast('Belum ada foto');
+  fotoModal('Preview Foto', url, 'dlFotoForm()', cur.foto || '');
+}
 
 async function saveSO() {
   const kode = V('s_kode').trim(), it = itm(kode), no = V('s_no').trim(), fs = V('s_fisik');
@@ -258,7 +271,7 @@ Object.assign(window, {
   go, toggleNav, closeNav,
   editItem, newItem, closeForm, setQ, dupChk, saveItem, delItem,
   expMenu, doExp, impOpen, impRead, impPrev, impGo, tplItems, closeM,
-  closeSO, editSO, setQs, fill, pv, saveSO, delSO, dlFotoForm, dlFotoSO
+  closeSO, editSO, setQs, fill, pv, saveSO, delSO, dlFotoForm, dlFotoSO, viewFoto, pvZoom
 });
 
 boot();

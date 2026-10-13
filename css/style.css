@@ -36,3 +36,6 @@ aside button.x{margin-left:auto;color:#dbe6f3;border-color:#ffffff33}aside butto
 .mh{display:flex;align-items:center;gap:10px;margin-bottom:8px}.mh h3{margin:0;flex:1;font-size:16px}
 .chip{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}.chip.n{background:#dff3e6;color:#1d6b3f}.chip.u{background:#fff1d6;color:#8a5a00}.chip.e{background:#fbe0e3;color:#8B2635}
 .hint{color:var(--mu);font-size:12px;margin:6px 0}
+a.abtn{display:inline-block;padding:9px 10px;background:var(--sea);color:#fff;border-radius:6px;text-decoration:none;cursor:pointer;font:inherit;text-align:center;border:0}
+a.abtn.s{background:#e7ecf1;color:#1b2430}
+a.abtn:hover{opacity:.9}
