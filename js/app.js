@@ -5,20 +5,24 @@ import { downloadBlob, xlItems, xlSO, pdfItems, pdfSO, tplItems, needXLSX } from
 
 let S = { items: [], so: [] };
 let page = 'so', sel = null, cur = {}, pf = null, q = '', qs = '', off = innerWidth < 800;
+let lastSig = '';
 
 const itm = (k) => S.items.find((i) => i.kode == k);
 const nowL = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
 const fmt = (t) => (t ? new Date(t).toLocaleString('id-ID') : '-');
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const sig = () => JSON.stringify(S.items) + '|' + JSON.stringify(S.so);
 
 async function save(c, o) {
   const i = S[c].findIndex((x) => x.id == o.id);
   i < 0 ? S[c].push(o) : (S[c][i] = o);
+  lastSig = sig();
   try { await db.save(c, o); } catch (e) { toast('Gagal menyimpan: ' + errMsg(e)); }
   go();
 }
 async function del(c, id) {
   S[c] = S[c].filter((x) => x.id != id);
+  lastSig = sig();
   try { await db.del(c, id); } catch (e) { toast('Gagal menghapus: ' + errMsg(e)); }
   go();
 }
@@ -29,15 +33,27 @@ async function boot() {
     const data = await db.listAll();
     S.items = data.items;
     S.so = data.so;
+    lastSig = sig();
   } catch (e) {
     toast('Gagal memuat data: ' + errMsg(e) + ' — periksa js/config.js');
   }
-  db.subscribeAll(reload);
+  db.subscribeAll(() => reload());
+  setInterval(() => reload(), 15000);
+  addEventListener('focus', () => reload());
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) reload(); });
   go();
 }
 async function reload() {
   if (document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
-  try { const d = await db.listAll(); S.items = d.items; S.so = d.so; go(); } catch (e) {}
+  try {
+    const d = await db.listAll();
+    const s = JSON.stringify(d.items) + '|' + JSON.stringify(d.so);
+    if (s === lastSig) return;
+    lastSig = s;
+    S.items = d.items;
+    S.so = d.so;
+    go();
+  } catch (e) {}
 }
 
 /* ================= Navigasi & kerangka ================= */
@@ -178,8 +194,8 @@ function so() {
   const L = S.so.filter((s) => !qs || (s.kode + s.nama + s.no).toLowerCase().includes(qs.toLowerCase())).sort((a, b) => b.tgl.localeCompare(a.tgl));
   const gd = [...new Set(S.items.map((i) => i.gudang).filter(Boolean))];
   const no = c.no || 'SO-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + String(S.so.length + 1).padStart(3, '0');
-  return `<div class="card"><div class="ch"><h3>${c.id ? 'Ubah' : 'Form'} Stock Opname</h3>${c.id ? `<button class="x" title="Kembali" aria-label="Kembali" onclick="closeSO()">✕</button>` : ''}</div><div class="form">${fld('Nomor Stock Opname', 's_no', no)}${fld('Tanggal & Waktu', 's_tgl', c.tgl || nowL(), 'datetime-local')}${fld('Kode Akun (otomatis dari Data Barang)', 's_akun', c.akun, 'text', 'readonly')}<div><label>Gudang</label><input id="s_gd" list="gl" value="${E(c.gudang)}"><datalist id="gl">${gd.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><div><label>Kode Barang</label><input id="s_kode" list="kl" value="${E(c.kode)}" onchange="fill()" placeholder="Ketik / pilih kode"><datalist id="kl">${S.items.map((i) => `<option value="${E(i.kode)}">${E(i.nama)}</option>`).join('')}</datalist></div>${fld('Nama Barang', 's_nama', c.nama, 'text', 'readonly')}${fld('Satuan', 's_sat', c.satuan, 'text', 'readonly')}${fld('Stok Fisik', 's_fisik', c.fisik, 'number', 'min="0" step="any"')}<div><label>Foto Fisik Barang</label><input id="s_foto" type="file" accept="image/jpeg,image/png,image/webp" onchange="pv(this.files[0])"><img id="pv" src="${E(c.foto)}" style="margin-top:8px;max-height:130px;border-radius:6px;display:${c.foto ? 'block' : 'none'}"></div></div><div class="bar" style="margin-top:14px"><button onclick="saveSO()">Simpan</button><button class="s" onclick="closeSO()">Baru / Batal</button></div></div>
-  <div class="card"><div class="bar"><input id="qs" placeholder="Cari nomor / kode / nama" value="${E(qs)}" oninput="setQs(this.value)"><button class="g" onclick="expMenu('so')">Export</button></div>${tbl(['Nomor', 'Tanggal', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto', ''], L.map((s) => `<tr><td>${E(s.no)}</td><td>${fmt(s.tgl)}</td><td>${E(s.akun || itm(s.kode)?.akun)}</td><td>${E(s.gudang)}</td><td>${E(s.kode)}</td><td>${E(s.nama)}</td><td><b>${E(s.fisik)}</b></td><td>${E(s.satuan)}</td><td>${s.foto ? `<a href="${E(s.foto)}" target="_blank"><img class="thumb" src="${E(s.foto)}"></a>` : '-'}</td><td style="white-space:nowrap"><button class="s" onclick="editSO('${s.id}')">Ubah</button> <button class="d" onclick="delSO('${s.id}')">Hapus</button></td></tr>`))}</div>`;
+  return `<div class="card"><div class="ch"><h3>${c.id ? 'Ubah' : 'Form'} Stock Opname</h3>${c.id ? `<button class="x" title="Kembali" aria-label="Kembali" onclick="closeSO()">✕</button>` : ''}</div><div class="form">${fld('Nomor Stock Opname', 's_no', no)}${fld('Tanggal & Waktu', 's_tgl', c.tgl || nowL(), 'datetime-local')}${fld('Kode Akun (otomatis dari Data Barang)', 's_akun', c.akun, 'text', 'readonly')}<div><label>Gudang</label><input id="s_gd" list="gl" value="${E(c.gudang)}"><datalist id="gl">${gd.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><div><label>Kode Barang</label><input id="s_kode" list="kl" value="${E(c.kode)}" onchange="fill()" placeholder="Ketik / pilih kode"><datalist id="kl">${S.items.map((i) => `<option value="${E(i.kode)}">${E(i.nama)}</option>`).join('')}</datalist></div>${fld('Nama Barang', 's_nama', c.nama, 'text', 'readonly')}${fld('Satuan', 's_sat', c.satuan, 'text', 'readonly')}${fld('Stok Fisik', 's_fisik', c.fisik, 'number', 'min="0" step="any"')}<div><label>Foto Fisik Barang</label><input id="s_foto" type="file" accept="image/jpeg,image/png,image/webp" onchange="pv(this.files[0])"><img id="pv" src="${E(c.foto)}" style="margin-top:8px;max-height:130px;border-radius:6px;display:${c.foto ? 'block' : 'none'}"><div class="bar" style="margin-top:8px"><button type="button" class="s" onclick="dlFotoForm()">Download Foto</button></div></div></div><div class="bar" style="margin-top:14px"><button onclick="saveSO()">Simpan</button><button class="s" onclick="closeSO()">Baru / Batal</button></div></div>
+  <div class="card"><div class="bar"><input id="qs" placeholder="Cari nomor / kode / nama" value="${E(qs)}" oninput="setQs(this.value)"><button class="g" onclick="expMenu('so')">Export</button></div>${tbl(['Nomor', 'Tanggal', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto', ''], L.map((s) => `<tr><td>${E(s.no)}</td><td>${fmt(s.tgl)}</td><td>${E(s.akun || itm(s.kode)?.akun)}</td><td>${E(s.gudang)}</td><td>${E(s.kode)}</td><td>${E(s.nama)}</td><td><b>${E(s.fisik)}</b></td><td>${E(s.satuan)}</td><td>${s.foto ? `<a href="${E(s.foto)}" onclick="dlFotoSO('${s.id}');return false" title="Download foto"><img class="thumb" src="${E(s.foto)}" alt="foto"></a>` : '-'}</td><td style="white-space:nowrap"><button class="s" onclick="editSO('${s.id}')">Ubah</button> <button class="d" onclick="delSO('${s.id}')">Hapus</button></td></tr>`))}</div>`;
 }
 
 function fill() {
@@ -191,6 +207,28 @@ function fill() {
   if (!it && V('s_kode')) toast('Kode barang tidak terdaftar di Data Barang');
 }
 function pv(f) { pf = f; const i = $('#pv'); if (f) { i.src = URL.createObjectURL(f); i.style.display = 'block'; } }
+
+/* ================= Download foto ================= */
+async function downloadPhoto(url, name) {
+  try {
+    toast('Mengunduh foto…');
+    const r = await fetch(url, { mode: 'cors' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const b = await r.blob();
+    const ext = (b.type.split('/')[1] || 'jpg').replace(/^jpeg$/, 'jpg');
+    downloadBlob(String(name || 'foto').replace(/\.[^.]+$/, '') + '.' + ext, b, 'Foto diunduh');
+  } catch (e) { toast('Gagal mengunduh foto: ' + (e.message || e)); }
+}
+function dlFotoForm() {
+  if (pf) return downloadBlob(pf.name || 'foto.jpg', pf, 'Foto diunduh');
+  if (cur.foto) return downloadPhoto(cur.foto, 'foto-' + (cur.no || cur.id || 'so'));
+  toast('Belum ada foto');
+}
+function dlFotoSO(id) {
+  const s = S.so.find((x) => x.id == id);
+  if (s && s.foto) downloadPhoto(s.foto, 'foto-' + (s.no || id));
+  else toast('Foto tidak tersedia');
+}
 
 async function saveSO() {
   const kode = V('s_kode').trim(), it = itm(kode), no = V('s_no').trim(), fs = V('s_fisik');
@@ -220,7 +258,7 @@ Object.assign(window, {
   go, toggleNav, closeNav,
   editItem, newItem, closeForm, setQ, dupChk, saveItem, delItem,
   expMenu, doExp, impOpen, impRead, impPrev, impGo, tplItems, closeM,
-  closeSO, editSO, setQs, fill, pv, saveSO, delSO
+  closeSO, editSO, setQs, fill, pv, saveSO, delSO, dlFotoForm, dlFotoSO
 });
 
 boot();
