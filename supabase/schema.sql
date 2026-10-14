@@ -35,20 +35,22 @@ create index if not exists so_kode_idx on public.so (kode);
 create index if not exists so_no_idx   on public.so (no);
 create index if not exists so_tgl_idx  on public.so (tgl desc);
 
--- Cegah kode barang dobel di Stock Opname (kunci di database).
--- AKTIFKAN hanya setelah TIDAK ADA lagi baris `so` dengan kode duplikat,
--- kalau tidak index ini akan gagal dibuat.
--- Cek dulu:  select kode, count(*) from public.so group by kode having count(*) > 1;
--- Hapus duplikat, lalu baru jalankan baris di bawah:
--- create unique index if not exists so_kode_uidx on public.so (kode);
+-- Kode barang hanya boleh 1 entri per BULAN (periode YYYY-MM dari tgl).
+-- Hapus aturan unik global lama (bila pernah terpasang):
+drop index if exists public.so_kode_uidx;
 
--- Mencegah duplikat saat pemasangan tanpa error (opsional, otomatis dilewati bila masih ada dobel):
+-- Buat unique per (kode, bulan). Amankan bila masih ada dobel di bulan sama.
 do $$
 begin
-  if not exists (select 1 from public.so group by kode having count(*) > 1) then
-    create unique index if not exists so_kode_uidx on public.so (kode);
+  if not exists (
+    select 1 from public.so
+    group by kode, to_char(tgl at time zone 'UTC', 'YYYY-MM')
+    having count(*) > 1
+  ) then
+    create unique index if not exists so_kode_periode_uidx
+      on public.so (kode, (to_char(tgl at time zone 'UTC', 'YYYY-MM')));
   else
-    raise notice 'Unique index so.kode dilewati: masih ada kode duplikat.';
+    raise notice 'Unique (kode, bulan) dilewati: masih ada kode dobel di bulan yang sama.';
   end if;
 end $$;
 

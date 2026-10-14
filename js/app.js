@@ -7,6 +7,7 @@ import { renderDash } from './dash.js';
 let S = { items: [], so: [] };
 let page = 'so', sel = null, cur = {}, pf = null, q = '', qs = '', off = innerWidth < 800;
 let df = { from: '', to: '', gd: '' };
+let qm = '';
 let lastSig = '';
 
 let itemMap = new Map();
@@ -16,6 +17,7 @@ const nowL = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).t
 const fmt = (t) => (t ? new Date(t).toLocaleString('id-ID') : '-');
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const num = (n) => Number(n || 0).toLocaleString('id-ID');
+const perio = (t) => String(t || '').slice(0, 7);
 const sig = () => JSON.stringify(S.items) + '|' + JSON.stringify(S.so);
 
 async function save(c, o) {
@@ -251,6 +253,7 @@ async function impGo() {
 function closeSO() { cur = {}; pf = null; go(); }
 function editSO(id) { cur = S.so.find((x) => x.id == id) || {}; pf = null; go(); scrollTo(0, 0); }
 function setQs(v) { qs = v; go(); const e = $('#qs'); if (e) { e.focus(); e.setSelectionRange(99, 99); } }
+function setQm(v) { qm = v; go(); }
 function nextNo() {
   const d = new Date();
   const p = 'SO-' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '-';
@@ -261,11 +264,11 @@ function nextNo() {
 
 function so() {
   const c = cur;
-  const L = S.so.filter((s) => !qs || (s.kode + s.nama + s.no).toLowerCase().includes(qs.toLowerCase())).sort((a, b) => b.tgl.localeCompare(a.tgl));
+  const L = S.so.filter((s) => (!qm || perio(s.tgl) === qm) && (!qs || (s.kode + s.nama + s.no).toLowerCase().includes(qs.toLowerCase()))).sort((a, b) => b.tgl.localeCompare(a.tgl));
   const gd = [...new Set(S.items.map((i) => i.gudang).filter(Boolean))];
   const no = c.no || nextNo();
-  return `<div class="card"><div class="ch"><h3>${c.id ? 'Ubah' : 'Form'} Stock Opname</h3>${c.id ? `<button class="x" title="Kembali" aria-label="Kembali" onclick="closeSO()">✕</button>` : ''}</div><div class="form">${fld('Nomor Stock Opname', 's_no', no)}${fld('Tanggal & Waktu', 's_tgl', c.tgl || nowL(), 'datetime-local')}${fld('Kode Akun (otomatis dari Data Barang)', 's_akun', c.akun, 'text', 'readonly')}<div><label>Gudang</label><input id="s_gd" list="gl" value="${E(c.gudang)}"><datalist id="gl">${gd.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><div class="acbox"><label>Kode Barang</label><div class="rowin"><input id="s_kode" autocomplete="off" value="${E(c.kode)}" oninput="kodSug(this.value)" onchange="fill()" onblur="kodHide()" placeholder="Ketik kode / nama"><button type="button" class="s" onclick="pickOpen()">Pilih</button></div><div id="s_sug" class="sug" style="display:none"></div><div id="s_dup" class="hint" style="color:var(--mar);display:none"></div></div>${fld('Nama Barang', 's_nama', c.nama, 'text', 'readonly')}${fld('Satuan', 's_sat', c.satuan, 'text', 'readonly')}${fld('Stok Fisik', 's_fisik', c.fisik, 'number', 'min="0" step="any"')}<div><label>Foto Fisik Barang</label><input id="s_foto" type="file" accept="image/jpeg,image/png,image/webp" onchange="pv(this.files[0])"><img id="pv" src="${E(c.foto)}" style="margin-top:8px;max-height:130px;border-radius:6px;cursor:pointer;display:${c.foto ? 'block' : 'none'}" onclick="pvZoom()" title="Klik untuk perbesar"><div class="bar" style="margin-top:8px"><button type="button" class="s" onclick="dlFotoForm()">Download Foto</button></div></div></div><div class="bar" style="margin-top:14px"><button onclick="saveSO()">Simpan</button><button class="s" onclick="closeSO()">Baru / Batal</button></div></div>
-  <div class="card"><div class="bar"><input id="qs" placeholder="Cari nomor / kode / nama" value="${E(qs)}" oninput="setQs(this.value)"><button class="g" onclick="expMenu('so')">Export</button><button class="d" onclick="clearSO()">Hapus Semua</button></div>${tbl(['Nomor', 'Tanggal', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto', ''], L.map((s) => `<tr><td>${E(s.no)}</td><td>${fmt(s.tgl)}</td><td>${E(s.akun || itm(s.kode)?.akun)}</td><td>${E(s.gudang)}</td><td>${E(s.kode)}</td><td>${E(s.nama)}</td><td><b>${E(s.fisik)}</b></td><td>${E(s.satuan)}</td><td>${s.foto ? `<a href="${E(s.foto)}" onclick="viewFoto('${s.id}');return false" title="Lihat foto"><img class="thumb" src="${E(s.foto)}" alt="foto"></a>` : '-'}</td><td style="white-space:nowrap"><button class="s" onclick="editSO('${s.id}')">Ubah</button> <button class="d" onclick="delSO('${s.id}')">Hapus</button></td></tr>`))}</div>`;
+  return `<div class="card"><div class="ch"><h3>${c.id ? 'Ubah' : 'Form'} Stock Opname</h3>${c.id ? `<button class="x" title="Kembali" aria-label="Kembali" onclick="closeSO()">✕</button>` : ''}</div><div class="form">${fld('Nomor Stock Opname', 's_no', no)}${fld('Tanggal & Waktu', 's_tgl', c.tgl || nowL(), 'datetime-local', 'onchange="fill()"')}${fld('Kode Akun (otomatis dari Data Barang)', 's_akun', c.akun, 'text', 'readonly')}<div><label>Gudang</label><input id="s_gd" list="gl" value="${E(c.gudang)}"><datalist id="gl">${gd.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><div class="acbox"><label>Kode Barang</label><div class="rowin"><input id="s_kode" autocomplete="off" value="${E(c.kode)}" oninput="kodSug(this.value)" onchange="fill()" onblur="kodHide()" placeholder="Ketik kode / nama"><button type="button" class="s" onclick="pickOpen()">Pilih</button></div><div id="s_sug" class="sug" style="display:none"></div><div id="s_dup" class="hint" style="color:var(--mar);display:none"></div></div>${fld('Nama Barang', 's_nama', c.nama, 'text', 'readonly')}${fld('Satuan', 's_sat', c.satuan, 'text', 'readonly')}${fld('Stok Fisik', 's_fisik', c.fisik, 'number', 'min="0" step="any"')}<div><label>Foto Fisik Barang</label><input id="s_foto" type="file" accept="image/jpeg,image/png,image/webp" onchange="pv(this.files[0])"><img id="pv" src="${E(c.foto)}" style="margin-top:8px;max-height:130px;border-radius:6px;cursor:pointer;display:${c.foto ? 'block' : 'none'}" onclick="pvZoom()" title="Klik untuk perbesar"><div class="bar" style="margin-top:8px"><button type="button" class="s" onclick="dlFotoForm()">Download Foto</button></div></div></div><div class="bar" style="margin-top:14px"><button onclick="saveSO()">Simpan</button><button class="s" onclick="closeSO()">Baru / Batal</button></div></div>
+  <div class="card"><div class="bar"><input id="qs" placeholder="Cari nomor / kode / nama" value="${E(qs)}" oninput="setQs(this.value)"><input id="qm" type="month" value="${E(qm)}" onchange="setQm(this.value)" title="Filter bulan"><button class="s" onclick="qm='';go()">Semua Bulan</button><button class="g" onclick="expMenu('so')">Export</button><button class="d" onclick="clearSO()">Hapus Semua</button></div>${tbl(['Nomor', 'Tanggal', 'Periode', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto', ''], L.map((s) => `<tr><td>${E(s.no)}</td><td>${fmt(s.tgl)}</td><td>${E(perio(s.tgl))}</td><td>${E(s.akun || itm(s.kode)?.akun)}</td><td>${E(s.gudang)}</td><td>${E(s.kode)}</td><td>${E(s.nama)}</td><td><b>${E(s.fisik)}</b></td><td>${E(s.satuan)}</td><td>${s.foto ? `<a href="${E(s.foto)}" onclick="viewFoto('${s.id}');return false" title="Lihat foto"><img class="thumb" src="${E(s.foto)}" alt="foto"></a>` : '-'}</td><td style="white-space:nowrap"><button class="s" onclick="editSO('${s.id}')">Ubah</button> <button class="d" onclick="delSO('${s.id}')">Hapus</button></td></tr>`))}</div>`;
 }
 
 function fill() {
@@ -275,10 +278,11 @@ function fill() {
   $('#s_sat').value = it?.satuan || '';
   $('#s_akun').value = it?.akun || '';
   if (it?.gudang && !V('s_gd')) $('#s_gd').value = it.gudang;
-  const dup = S.so.find((s) => s.kode == kode && s.id != cur.id);
+  const per = perio(new Date(V('s_tgl')).toISOString());
+  const dup = S.so.find((s) => s.kode == kode && s.id != cur.id && perio(s.tgl) === per);
   const w = $('#s_dup');
   if (w) {
-    if (dup) { w.textContent = 'Kode ' + kode + ' sudah diinput di ' + (dup.no || 'entri lain') + '. Satu kode hanya boleh 1 entri.'; w.style.display = 'block'; }
+    if (dup) { w.textContent = 'Kode ' + kode + ' sudah diinput untuk periode ' + per + ' (' + (dup.no || 'entri lain') + '). Satu kode hanya boleh 1 entri per bulan.'; w.style.display = 'block'; }
     else w.style.display = 'none';
   }
   if (!it && kode) toast('Kode barang tidak terdaftar di Data Barang');
@@ -289,7 +293,8 @@ function kodSug(v) {
   if (!box) return;
   const s = String(v || '').trim().toLowerCase();
   if (!s) { box.style.display = 'none'; box.innerHTML = ''; return; }
-  const used = new Set(S.so.filter((x) => x.id != cur.id).map((x) => x.kode));
+  const per = perio(new Date(V('s_tgl')).toISOString());
+  const used = new Set(S.so.filter((x) => x.id != cur.id && perio(x.tgl) === per).map((x) => x.kode));
   const out = [];
   for (const i of S.items) {
     if (i.kode.toLowerCase().includes(s) || (i.nama || '').toLowerCase().includes(s)) {
@@ -315,7 +320,8 @@ function pickSearch(v) {
   const box = $('#pk_list');
   if (!box) return;
   const s = String(v || '').trim().toLowerCase();
-  const used = new Set(S.so.filter((x) => x.id != cur.id).map((x) => x.kode));
+  const per = perio(new Date(V('s_tgl')).toISOString());
+  const used = new Set(S.so.filter((x) => x.id != cur.id && perio(x.tgl) === per).map((x) => x.kode));
   const out = [];
   for (const i of S.items) {
     if (!s || i.kode.toLowerCase().includes(s) || (i.nama || '').toLowerCase().includes(s)) {
@@ -372,8 +378,10 @@ async function saveSO() {
   if (!V('s_gd').trim()) return toast('Gudang wajib diisi');
   if (fs === '' || Number(fs) < 0) return toast('Isi stok fisik dengan benar');
   if (S.so.some((s) => s.no == no && s.id != cur.id)) return toast('Nomor Stock Opname sudah dipakai');
-  const dup = S.so.find((s) => s.kode == kode && s.id != cur.id);
-  if (dup) return toast('Kode ' + kode + ' sudah diinput di ' + (dup.no || 'entri lain'));
+  const tglIso = new Date(V('s_tgl')).toISOString();
+  const per = perio(tglIso);
+  const dup = S.so.find((s) => s.kode == kode && s.id != cur.id && perio(s.tgl) === per);
+  if (dup) return toast('Kode ' + kode + ' sudah diinput untuk periode ' + per + ' (' + (dup.no || 'entri lain') + ')');
   let foto = cur.foto || '', foto_id = cur.foto_id || '';
   if (pf) {
     if (!/^image\/(jpeg|png|webp)$/.test(pf.type)) return toast('Foto harus JPG, PNG, atau WEBP');
@@ -381,7 +389,7 @@ async function saveSO() {
     try { const r = await db.uploadFoto(pf); foto = r.url; foto_id = r.id; }
     catch (e) { return toast('Upload foto gagal: ' + (e.message || '')); }
   }
-  await save('so', { id: cur.id || uid(), no, tgl: new Date(V('s_tgl')).toISOString(), akun: V('s_akun').trim(), gudang: V('s_gd').trim(), kode, nama: it.nama, satuan: it.satuan, fisik: Number(fs), foto, foto_id });
+  await save('so', { id: cur.id || uid(), no, tgl: tglIso, akun: V('s_akun').trim(), gudang: V('s_gd').trim(), kode, nama: it.nama, satuan: it.satuan, fisik: Number(fs), foto, foto_id });
   toast('Stock opname tersimpan'); cur = {}; pf = null; go();
 }
 async function delSO(id) {
@@ -409,7 +417,7 @@ Object.assign(window, {
   go, toggleNav, closeNav, dashSet, dfReset, dfPreset,
   editItem, newItem, closeForm, setQ, dupChk, saveItem, delItem, clearItems,
   expMenu, doExp, impOpen, impRead, impPrev, impGo, tplItems, closeM,
-  closeSO, editSO, setQs, fill, pv, saveSO, delSO, clearSO, dlFotoForm, dlFotoSO, viewFoto, pvZoom, kodSug, kodHide, pickKode, pickOpen, pickSearch, soPick
+  closeSO, editSO, setQs, setQm, fill, pv, saveSO, delSO, clearSO, dlFotoForm, dlFotoSO, viewFoto, pvZoom, kodSug, kodHide, pickKode, pickOpen, pickSearch, soPick
 });
 
 boot();

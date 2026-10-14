@@ -45,6 +45,7 @@ function zip(files) {
 const X = (s) => String(s ?? '').replace(/[&<>"\x00-\x08\x0b\x0c\x0e-\x1f]/g, (c) => (c == '&' ? '&amp;' : c == '<' ? '&lt;' : c == '>' ? '&gt;' : c == '"' ? '&quot;' : ''));
 const CL = (i) => { let s = ''; for (i++; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + (i - 1) % 26) + s; return s; };
 const sr = (t) => { const d = new Date(t); return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5) + 25569; };
+const perio = (t) => String(t || '').slice(0, 7);
 
 const EMU = 9525; // 1 px = 9525 EMU
 const H1 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
@@ -185,9 +186,9 @@ export async function xlSO(soList, items) {
   const L = [...soList].sort((a, b) => a.tgl.localeCompare(b.tgl));
   const ak = (k) => items.find((i) => i.kode == k)?.akun || '';
   const fotos = await preloadFotos(L);
-  const rows = L.map((s, i) => [i + 1, sr(s.tgl), s.akun || ak(s.kode), s.gudang, s.kode, s.nama, s.fisik, s.satuan, fotos.get(s.id) ? '' : (s.foto ? 'Ada' : '-')]);
-  const images = L.map((s) => { const t = fotos.get(s.id); return t ? { col: 8, bytes: t.bytes, w: t.w, h: t.h } : null; });
-  downloadBlob('stock-opname.xlsx', xlsx('Stock Opname', 'TEMPLATE STOCK OPNAME — PT TERMINAL PETIKEMAS SURABAYA', 'Hasil pemeriksaan fisik persediaan · Dicetak: ' + new Date().toLocaleString('id-ID') + ' · ' + L.length + ' data', ['Nomor', 'Tanggal', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto'], [10, 15, 18, 22, 18, 34, 14, 14, 32], 'cdccclccc', rows, images));
+  const rows = L.map((s, i) => [i + 1, sr(s.tgl), perio(s.tgl), s.akun || ak(s.kode), s.gudang, s.kode, s.nama, s.fisik, s.satuan, fotos.get(s.id) ? '' : (s.foto ? 'Ada' : '-')]);
+  const images = L.map((s) => { const t = fotos.get(s.id); return t ? { col: 9, bytes: t.bytes, w: t.w, h: t.h } : null; });
+  downloadBlob('stock-opname.xlsx', xlsx('Stock Opname', 'TEMPLATE STOCK OPNAME — PT TERMINAL PETIKEMAS SURABAYA', 'Hasil pemeriksaan fisik persediaan · Dicetak: ' + new Date().toLocaleString('id-ID') + ' · ' + L.length + ' data', ['Nomor', 'Tanggal', 'Periode', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto'], [10, 15, 12, 18, 22, 18, 34, 14, 14, 32], 'cdcccclccc', rows, images));
 }
 
 /* ================= Export PDF ================= */
@@ -230,12 +231,12 @@ export async function pdfSO(soList, items) {
   const body = L.map((s, i) => {
     const t = fotos.get(s.id);
     const fotoCell = t ? { content: '', styles: { minCellHeight: 56 } } : (s.foto ? 'Ada' : '-');
-    return [i + 1, new Date(s.tgl).toLocaleDateString('id-ID'), s.akun || ak(s.kode), s.gudang || '', s.kode, s.nama, s.fisik, s.satuan, fotoCell];
+    return [i + 1, new Date(s.tgl).toLocaleDateString('id-ID'), perio(s.tgl), s.akun || ak(s.kode), s.gudang || '', s.kode, s.nama, s.fisik, s.satuan, fotoCell];
   });
   const images = L.map((s) => { const t = fotos.get(s.id); return t ? { dataUrl: t.dataUrl, w: t.w, h: t.h } : null; });
-  return pdf('stock-opname.pdf', 'TEMPLATE STOCK OPNAME — PT TERMINAL PETIKEMAS SURABAYA', 'Hasil pemeriksaan fisik persediaan · Dicetak: ' + new Date().toLocaleString('id-ID') + ' · ' + L.length + ' data', ['Nomor', 'Tanggal', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto'],
-    body, { 0: { halign: 'center', cellWidth: 40 }, 1: { halign: 'center' }, 6: { halign: 'center' }, 7: { halign: 'center' }, 8: { halign: 'center', cellWidth: 60 } },
-    { imageCol: 8, images });
+  return pdf('stock-opname.pdf', 'TEMPLATE STOCK OPNAME — PT TERMINAL PETIKEMAS SURABAYA', 'Hasil pemeriksaan fisik persediaan · Dicetak: ' + new Date().toLocaleString('id-ID') + ' · ' + L.length + ' data', ['Nomor', 'Tanggal', 'Periode', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto'],
+    body, { 0: { halign: 'center', cellWidth: 40 }, 1: { halign: 'center' }, 2: { halign: 'center' }, 7: { halign: 'center' }, 8: { halign: 'center' }, 9: { halign: 'center', cellWidth: 60 } },
+    { imageCol: 9, images });
 }
 
 /* ================= Template impor ================= */
