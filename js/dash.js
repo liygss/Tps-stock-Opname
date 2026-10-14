@@ -38,7 +38,9 @@ function hbars(rows, fmtv = num) {
 function trend(days) {
   if (!days.length) return `<div class="chartempty">Belum ada data</div>`;
   const max = Math.max(1, ...days.map((d) => d.value));
-  return `<div class="trend">${days.map((d) => `<div class="tcol" title="${d.k}: ${num(d.value)} entri"><div class="tbarwrap"><i style="height:${Math.max(d.value ? 6 : 2, Math.round((d.value / max) * 100))}%"></i></div><span class="tlab">${d.short}</span></div>`).join('')}</div>`;
+  const showVal = days.length <= 20;
+  const cols = days.map((d) => `<div class="tcol" title="${d.k}: ${num(d.value)} entri"><span class="tval">${showVal && d.value ? num(d.value) : ''}</span><div class="tbarwrap"><i style="height:${d.value ? Math.max(4, Math.round((d.value / max) * 100)) : 0}%"></i></div><span class="tlab">${d.short}</span></div>`).join('');
+  return `<div class="trendwrap"><div class="tyaxis"><span>${num(max)}</span><span>${Math.round(max / 2)}</span><span>0</span></div><div class="trendscroll"><div class="trend">${cols}</div></div></div>`;
 }
 
 export function renderDash({ so, items, df }) {
@@ -90,20 +92,14 @@ export function renderDash({ so, items, df }) {
   L.forEach((s) => { const k = (katOf[s.kode] || '').trim() || '(tanpa kategori)'; byKat[k] = (byKat[k] || 0) + (Number(s.fisik) || 0); });
   const katRows = Object.entries(byKat).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([label, value], i) => ({ label, value, color: PALETTE[(i + 4) % PALETTE.length] }));
 
-  // tren per hari
+  // tren per hari (selalu rentang berkelanjutan)
   const map = {};
   L.forEach((s) => { const d = String(s.tgl || '').slice(0, 10); if (d) map[d] = (map[d] || 0) + 1; });
-  let days;
-  const keys = Object.keys(map).sort();
-  if (df.from || df.to) {
-    const start = df.from ? new Date(df.from + 'T00:00:00') : new Date(keys[0] + 'T00:00:00');
-    const end = df.to ? new Date(df.to + 'T00:00:00') : new Date();
-    days = [];
-    for (let d = new Date(start); d <= end && days.length < 93; d.setDate(d.getDate() + 1)) {
-      const k = ymd(d); days.push({ k, value: map[k] || 0, short: k.slice(8) + '/' + k.slice(5, 7) });
-    }
-  } else {
-    days = keys.slice(-14).map((k) => ({ k, value: map[k], short: k.slice(8) + '/' + k.slice(5, 7) }));
+  const end = df.to ? new Date(df.to + 'T00:00:00') : new Date();
+  const start = df.from ? new Date(df.from + 'T00:00:00') : new Date(end.getTime() - 13 * 864e5);
+  const days = [];
+  for (let d = new Date(start); d <= end && days.length < 93; d.setDate(d.getDate() + 1)) {
+    const k = ymd(d); days.push({ k, value: map[k] || 0, short: k.slice(8) + '/' + k.slice(5, 7) });
   }
 
   // aktivitas terbaru
