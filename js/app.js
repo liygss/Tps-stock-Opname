@@ -105,7 +105,7 @@ function items() {
     return `<div class="card"><div class="ch"><h3>${nw ? 'Tambah Barang' : 'Ubah Barang'}</h3><button class="x" title="Kembali" aria-label="Kembali" onclick="closeForm()">✕</button></div><div class="form">${fld('Kode Barang (unik)', 'i_kode', it.kode, 'text', nw ? 'onchange="dupChk()"' : 'readonly')}${fld('Kode Akun', 'i_akun', it.akun)}${fld('Nama Barang', 'i_nama', it.nama)}${fld('Kategori', 'i_kat', it.kat)}${fld('Satuan', 'i_sat', it.satuan, 'text', 'placeholder="pcs, kg, unit…"')}${fld('Gudang', 'i_gd', it.gudang)}${fld('Lokasi Penyimpanan', 'i_lok', it.lokasi)}</div><div class="bar" style="margin-top:14px"><button onclick="saveItem(${nw})">Simpan</button><button class="s" onclick="closeForm()">Batal</button>${nw ? '' : `<button class="d" onclick="delItem()">Hapus</button>`}</div></div>`;
   }
   const L = S.items.filter((i) => !q || (i.kode + i.nama).toLowerCase().includes(q.toLowerCase()));
-  return `<div class="card"><div class="bar"><input id="q" placeholder="Cari kode / nama barang" value="${E(q)}" oninput="setQ(this.value)"><button onclick="newItem()">+ Tambah Barang</button><button class="s" onclick="impOpen()">Impor</button><button class="g" onclick="expMenu('items')">Ekspor</button></div>${tbl(['Kode', 'Kode Akun', 'Nama Barang', 'Kategori', 'Satuan', 'Gudang', 'Lokasi', ''], L.map((i) => `<tr><td>${E(i.kode)}</td><td>${E(i.akun)}</td><td>${E(i.nama)}</td><td>${E(i.kat)}</td><td>${E(i.satuan)}</td><td>${E(i.gudang)}</td><td>${E(i.lokasi)}</td><td><button class="s" onclick="editItem('${E(i.kode)}')">Ubah</button></td></tr>`))}<p class="hint">Impor menerima file Excel (.xlsx/.xls) atau CSV. Kolom: Kode Barang, Kode Akun, Nama Barang, Kategori, Satuan, Gudang, Lokasi. File hasil Ekspor bisa langsung diimpor kembali.</p></div>`;
+  return `<div class="card"><div class="bar"><input id="q" placeholder="Cari kode / nama barang" value="${E(q)}" oninput="setQ(this.value)"><button onclick="newItem()">+ Tambah Barang</button><button class="s" onclick="impOpen()">Impor</button><button class="g" onclick="expMenu('items')">Ekspor</button><button class="d" onclick="clearItems()">Hapus Semua</button></div>${tbl(['Kode', 'Kode Akun', 'Nama Barang', 'Kategori', 'Satuan', 'Gudang', 'Lokasi', ''], L.map((i) => `<tr><td>${E(i.kode)}</td><td>${E(i.akun)}</td><td>${E(i.nama)}</td><td>${E(i.kat)}</td><td>${E(i.satuan)}</td><td>${E(i.gudang)}</td><td>${E(i.lokasi)}</td><td><button class="s" onclick="editItem('${E(i.kode)}')">Ubah</button></td></tr>`))}<p class="hint">Impor menerima file Excel (.xlsx/.xls) atau CSV. Kolom: Kode Barang, Kode Akun, Nama Barang, Kategori, Satuan, Gudang, Lokasi. File hasil Ekspor bisa langsung diimpor kembali.</p></div>`;
 }
 
 function dupChk() { const k = V('i_kode').trim(), e = itm(k); if (e && confirm('Kode barang ' + k + ' sudah ada (' + e.nama + ').\nBuka barang tersebut untuk diedit?')) { sel = k; go(); } }
@@ -119,6 +119,15 @@ function saveItem(nw) {
 function delItem() {
   if (S.so.some((s) => s.kode == sel)) return toast('Tidak dapat dihapus: barang sudah dipakai di Stock Opname');
   if (confirm('Hapus barang ' + sel + '?')) { del('items', itm(sel).id); sel = null; go(); }
+}
+async function clearItems() {
+  const n = S.items.length;
+  if (!n) return toast('Tidak ada data barang');
+  if (!confirm('Hapus SEMUA ' + n + ' data barang? Tindakan ini tidak bisa dibatalkan.')) return;
+  if (!confirm('Yakin? Seluruh Data Barang akan dihapus permanen.')) return;
+  try { await db.delAll('items'); } catch (e) { return toast('Gagal menghapus: ' + errMsg(e)); }
+  S.items = []; lastSig = sig(); go();
+  toast(n + ' data barang dihapus');
 }
 
 /* ================= Export menu ================= */
@@ -226,7 +235,7 @@ function so() {
   const gd = [...new Set(S.items.map((i) => i.gudang).filter(Boolean))];
   const no = c.no || nextNo();
   return `<div class="card"><div class="ch"><h3>${c.id ? 'Ubah' : 'Form'} Stock Opname</h3>${c.id ? `<button class="x" title="Kembali" aria-label="Kembali" onclick="closeSO()">✕</button>` : ''}</div><div class="form">${fld('Nomor Stock Opname', 's_no', no)}${fld('Tanggal & Waktu', 's_tgl', c.tgl || nowL(), 'datetime-local')}${fld('Kode Akun (otomatis dari Data Barang)', 's_akun', c.akun, 'text', 'readonly')}<div><label>Gudang</label><input id="s_gd" list="gl" value="${E(c.gudang)}"><datalist id="gl">${gd.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><div><label>Kode Barang</label><input id="s_kode" list="kl" value="${E(c.kode)}" onchange="fill()" placeholder="Ketik / pilih kode"><datalist id="kl">${S.items.map((i) => { const used = S.so.some((s) => s.kode == i.kode && s.id != (cur.id || '')); return `<option value="${E(i.kode)}">${E(i.nama)}${used ? ' (sudah diinput)' : ''}</option>`; }).join('')}</datalist><div id="s_dup" class="hint" style="color:var(--mar);display:none"></div></div>${fld('Nama Barang', 's_nama', c.nama, 'text', 'readonly')}${fld('Satuan', 's_sat', c.satuan, 'text', 'readonly')}${fld('Stok Fisik', 's_fisik', c.fisik, 'number', 'min="0" step="any"')}<div><label>Foto Fisik Barang</label><input id="s_foto" type="file" accept="image/jpeg,image/png,image/webp" onchange="pv(this.files[0])"><img id="pv" src="${E(c.foto)}" style="margin-top:8px;max-height:130px;border-radius:6px;cursor:pointer;display:${c.foto ? 'block' : 'none'}" onclick="pvZoom()" title="Klik untuk perbesar"><div class="bar" style="margin-top:8px"><button type="button" class="s" onclick="dlFotoForm()">Download Foto</button></div></div></div><div class="bar" style="margin-top:14px"><button onclick="saveSO()">Simpan</button><button class="s" onclick="closeSO()">Baru / Batal</button></div></div>
-  <div class="card"><div class="bar"><input id="qs" placeholder="Cari nomor / kode / nama" value="${E(qs)}" oninput="setQs(this.value)"><button class="g" onclick="expMenu('so')">Export</button></div>${tbl(['Nomor', 'Tanggal', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto', ''], L.map((s) => `<tr><td>${E(s.no)}</td><td>${fmt(s.tgl)}</td><td>${E(s.akun || itm(s.kode)?.akun)}</td><td>${E(s.gudang)}</td><td>${E(s.kode)}</td><td>${E(s.nama)}</td><td><b>${E(s.fisik)}</b></td><td>${E(s.satuan)}</td><td>${s.foto ? `<a href="${E(s.foto)}" onclick="viewFoto('${s.id}');return false" title="Lihat foto"><img class="thumb" src="${E(s.foto)}" alt="foto"></a>` : '-'}</td><td style="white-space:nowrap"><button class="s" onclick="editSO('${s.id}')">Ubah</button> <button class="d" onclick="delSO('${s.id}')">Hapus</button></td></tr>`))}</div>`;
+  <div class="card"><div class="bar"><input id="qs" placeholder="Cari nomor / kode / nama" value="${E(qs)}" oninput="setQs(this.value)"><button class="g" onclick="expMenu('so')">Export</button><button class="d" onclick="clearSO()">Hapus Semua</button></div>${tbl(['Nomor', 'Tanggal', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto', ''], L.map((s) => `<tr><td>${E(s.no)}</td><td>${fmt(s.tgl)}</td><td>${E(s.akun || itm(s.kode)?.akun)}</td><td>${E(s.gudang)}</td><td>${E(s.kode)}</td><td>${E(s.nama)}</td><td><b>${E(s.fisik)}</b></td><td>${E(s.satuan)}</td><td>${s.foto ? `<a href="${E(s.foto)}" onclick="viewFoto('${s.id}');return false" title="Lihat foto"><img class="thumb" src="${E(s.foto)}" alt="foto"></a>` : '-'}</td><td style="white-space:nowrap"><button class="s" onclick="editSO('${s.id}')">Ubah</button> <button class="d" onclick="delSO('${s.id}')">Hapus</button></td></tr>`))}</div>`;
 }
 
 function fill() {
@@ -305,13 +314,26 @@ async function delSO(id) {
   if (s.foto_id) try { await db.deleteFoto(s.foto_id); } catch (e) {}
   del('so', id);
 }
+async function clearSO() {
+  const n = S.so.length;
+  if (!n) return toast('Tidak ada data opname');
+  if (!confirm('Hapus SEMUA ' + n + ' entri Stock Opname? Termasuk semua fotonya.')) return;
+  if (!confirm('Yakin? Seluruh data Stock Opname akan dihapus permanen.')) return;
+  const ids = S.so.map((s) => s.foto_id).filter(Boolean);
+  try {
+    await db.delAll('so');
+    if (ids.length) await db.deleteFotoMany(ids);
+  } catch (e) { return toast('Gagal menghapus: ' + errMsg(e)); }
+  S.so = []; lastSig = sig(); go();
+  toast(n + ' entri opname dihapus');
+}
 
 /* ================= Ekspos handler inline ================= */
 Object.assign(window, {
   go, toggleNav, closeNav, dashSet, dfReset, dfPreset,
-  editItem, newItem, closeForm, setQ, dupChk, saveItem, delItem,
+  editItem, newItem, closeForm, setQ, dupChk, saveItem, delItem, clearItems,
   expMenu, doExp, impOpen, impRead, impPrev, impGo, tplItems, closeM,
-  closeSO, editSO, setQs, fill, pv, saveSO, delSO, dlFotoForm, dlFotoSO, viewFoto, pvZoom
+  closeSO, editSO, setQs, fill, pv, saveSO, delSO, clearSO, dlFotoForm, dlFotoSO, viewFoto, pvZoom
 });
 
 boot();

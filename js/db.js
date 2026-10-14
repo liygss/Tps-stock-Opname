@@ -31,6 +31,11 @@ export async function del(table, id) {
   if (error) throw error;
 }
 
+export async function delAll(table) {
+  const { error } = await supabase.from(table).delete().gte('id', '');
+  if (error) throw error;
+}
+
 export async function uploadFoto(file) {
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
   const path = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -45,4 +50,11 @@ export async function uploadFoto(file) {
 export async function deleteFoto(path) {
   if (!path) return;
   await supabase.storage.from(BUCKET).remove([path]);
+}
+
+export async function deleteFotoMany(paths) {
+  const list = (paths || []).filter(Boolean);
+  for (let i = 0; i < list.length; i += 100) {
+    await supabase.storage.from(BUCKET).remove(list.slice(i, i + 100));
+  }
 }
