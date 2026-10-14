@@ -55,6 +55,19 @@ function trend(days) {
   return `<div class="trendwrap"><div class="tyaxis"><span>${num(max)}</span><span>${Math.round(max / 2)}</span><span>0</span></div><div class="trendscroll"><div class="trend">${cols}</div></div></div>`;
 }
 
+function importPanel() {
+  let r = null;
+  try { r = JSON.parse(localStorage.getItem('tps_lastImport') || 'null'); } catch (e) {}
+  if (!r) return '';
+  const when = r.at ? new Date(r.at).toLocaleString('id-ID') : '-';
+  const dupHtml = r.dup
+    ? `<div class="minilist">${(r.dups || []).slice(0, 10).map((k) => `<div class="mi"><span class="micode">${E(k)}</span></div>`).join('')}</div>${r.dup > 10 ? `<p class="hint">+${r.dup - 10} lagi…</p>` : ''}`
+    : `<div class="chartempty" style="padding:12px">Tidak ada duplikat</div>`;
+  const stats = [['Terbaca', r.read], ['Unik', r.unik], ['Duplikat', r.dup], ['Error', r.error], ['Baru', r.baru], ['Diperbarui', r.updated], ['Total di DB', r.total]]
+    .map(([l, v]) => `<div class="istat"><span class="klbl">${l}</span><b>${v != null ? num(v) : '-'}</b></div>`).join('');
+  return panel('Impor Terakhir', ICO.list, `<div class="istats">${stats}</div><div class="subhead">Kode duplikat</div>${dupHtml}<p class="hint" style="margin-top:8px">Terakhir: ${when}</p>`, .22);
+}
+
 export function renderDash({ so, items, df }) {
   const inR = (s) => {
     if (df.gd && (s.gudang || '') != df.gd) return false;
@@ -130,5 +143,6 @@ export function renderDash({ so, items, df }) {
   <div class="kpis">${cards}</div>
   <div class="dgrid">${panel('Entri per Gudang', ICO.pie, donut(gdSeg, totalEntri), .05)}${panel('Top Barang (Total Fisik)', ICO.chart, hbars(top), .1)}</div>
   <div class="dgrid">${panel('Tren Entri per Hari', ICO.trend, trend(days), .15)}${panel('Rekap per Kategori (Total Fisik)', ICO.tag, hbars(katRows), .2)}</div>
+  ${importPanel()}
   ${panel('Aktivitas Terbaru', ICO.clock, actHtml, .25)}`;
 }

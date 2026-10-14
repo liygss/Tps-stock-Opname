@@ -15,6 +15,7 @@ const itm = (k) => itemMap.get(k);
 const nowL = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
 const fmt = (t) => (t ? new Date(t).toLocaleString('id-ID') : '-');
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const num = (n) => Number(n || 0).toLocaleString('id-ID');
 const sig = () => JSON.stringify(S.items) + '|' + JSON.stringify(S.so);
 
 async function save(c, o) {
@@ -200,8 +201,11 @@ function impPrev() {
   if (!v || !IMP) return;
   const ow = $('#impo')?.checked, c = { n: 0, u: 0, e: 0 };
   IMP.forEach((x) => c[x.st]++);
+  const dup = IMP.filter((x) => x.msg == 'Kode ganda di file').length;
+  const unik = IMP.length - c.e;
   const ok = c.n + (ow ? c.u : 0);
-  v.innerHTML = `<div class="bar" style="margin-top:8px"><span class="chip n">${c.n} baru</span><span class="chip u">${c.u} sudah ada ${ow ? '(ditimpa)' : '(dilewati)'}</span><span class="chip e">${c.e} error</span></div><div class="tw" style="max-height:38vh;overflow:auto">${tbl(['Status', 'Kode', 'Nama', 'Satuan', 'Keterangan'], IMP.slice(0, 100).map((x) => `<tr><td><span class="chip ${x.st}">${x.st == 'n' ? 'Baru' : x.st == 'u' ? (ow ? 'Timpa' : 'Lewati') : 'Error'}</span></td><td>${E(x.o.kode)}</td><td>${E(x.o.nama)}</td><td>${E(x.o.satuan)}</td><td>${E(x.msg)}</td></tr>`))}</div>${IMP.length > 100 ? `<p class="hint">Menampilkan 100 dari ${IMP.length} baris.</p>` : ''}<div class="bar" style="margin-top:12px"><button ${ok ? '' : 'disabled'} onclick="impGo()">Impor ${ok} barang</button><button class="s" onclick="closeM()">Batal</button></div>`;
+  const totals = `<div class="bar" style="margin-top:8px;gap:14px"><span class="hint">Terbaca <b>${num(IMP.length)}</b> baris</span><span class="hint">Unik <b>${num(unik)}</b></span><span class="hint">Duplikat <b>${num(dup)}</b></span><span class="hint">Error <b>${num(c.e)}</b></span></div>`;
+  v.innerHTML = `${totals}<div class="bar" style="margin-top:2px"><span class="chip n">${c.n} baru</span><span class="chip u">${c.u} sudah ada ${ow ? '(ditimpa)' : '(dilewati)'}</span><span class="chip e">${c.e} error</span></div><div class="tw" style="max-height:38vh;overflow:auto">${tbl(['Status', 'Kode', 'Nama', 'Satuan', 'Keterangan'], IMP.slice(0, 100).map((x) => `<tr><td><span class="chip ${x.st}">${x.st == 'n' ? 'Baru' : x.st == 'u' ? (ow ? 'Timpa' : 'Lewati') : 'Error'}</span></td><td>${E(x.o.kode)}</td><td>${E(x.o.nama)}</td><td>${E(x.o.satuan)}</td><td>${E(x.msg)}</td></tr>`))}</div>${IMP.length > 100 ? `<p class="hint">Menampilkan 100 dari ${num(IMP.length)} baris.</p>` : ''}<div class="bar" style="margin-top:12px"><button ${ok ? '' : 'disabled'} onclick="impGo()">Impor ${num(ok)} barang</button><button class="s" onclick="closeM()">Batal</button></div>`;
 }
 
 let importing = false;
@@ -209,9 +213,9 @@ async function impGo() {
   if (importing) return;
   const ow = $('#impo')?.checked, now = new Date().toISOString();
   let n = 0, u = 0, sk = 0, er = 0;
-  const rows = [];
+  const rows = [], dups = [];
   for (const x of IMP) {
-    if (x.st == 'e') { er++; continue; }
+    if (x.st == 'e') { er++; if (x.msg == 'Kode ganda di file') dups.push(x.o.kode); continue; }
     const ex = itm(x.o.kode);
     if (ex && !ow) { sk++; continue; }
     rows.push({ id: ex ? ex.id : x.o.kode, kode: x.o.kode, akun: x.o.akun || '', nama: x.o.nama, kat: x.o.kat || '', satuan: x.o.satuan, gudang: x.o.gudang || '', lokasi: x.o.lokasi || '', upd: now });
@@ -221,11 +225,20 @@ async function impGo() {
   importing = true;
   const status = $('#impv');
   try {
-    const res = await db.saveMany('items', rows, 500, (done, total) => { if (status) status.innerHTML = `<p class="hint">Menyimpan ${done}/${total}…</p>`; });
+    const res = await db.saveMany('items', rows, 250, (done, total) => { if (status) status.innerHTML = `<p class="hint">Menyimpan ${done}/${total}…</p>`; });
+    // retry baris yang gagal sekali lagi
+    if (res.failedIds && res.failedIds.length) {
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      const retry = res.failedIds.map((id) => byId.get(id)).filter(Boolean);
+      if (retry.length) { if (status) status.innerHTML = `<p class="hint">Mencoba ulang ${retry.length} baris…</p>`; await db.saveMany('items', retry, 100); }
+    }
+    const total = await db.count('items').catch(() => null);
     const d = await db.listAll();
     S.items = d.items; S.so = d.so; reindex(); lastSig = sig();
+    const totalShown = total != null ? total : S.items.length;
+    try { localStorage.setItem('tps_lastImport', JSON.stringify({ at: new Date().toISOString(), read: IMP.length, unik: IMP.length - er, dup: dups.length, dups: dups.slice(0, 500), error: er, baru: n, updated: u, skipped: sk, total: totalShown })); } catch (e) {}
     closeM();
-    toast(n + ' baru, ' + u + ' diperbarui' + (sk ? ', ' + sk + ' dilewati' : '') + (er ? ', ' + er + ' error' : '') + (res.fail ? '. ' + res.fail + ' gagal disimpan' : ''));
+    toast(n + ' baru, ' + u + ' diperbarui' + (sk ? ', ' + sk + ' dilewati' : '') + (er ? ', ' + er + ' error' : '') + (res.fail ? '. ' + res.fail + ' gagal' : '') + ' · Total: ' + num(totalShown));
   } catch (e) {
     toast('Impor gagal: ' + errMsg(e));
   } finally {
