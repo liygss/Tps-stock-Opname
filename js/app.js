@@ -124,7 +124,7 @@ async function clearItems() {
   const n = S.items.length;
   if (!n) return toast('Tidak ada data barang');
   if (!confirm('Hapus SEMUA ' + n + ' data barang? Tindakan ini tidak bisa dibatalkan.')) return;
-  if (!confirm('Yakin? Seluruh Data Barang akan dihapus permanen.')) return;
+  if (prompt('Ketik HAPUS (huruf besar) untuk konfirmasi:') !== 'HAPUS') return toast('Dibatalkan');
   try { await db.delAll('items'); } catch (e) { return toast('Gagal menghapus: ' + errMsg(e)); }
   S.items = []; lastSig = sig(); go();
   toast(n + ' data barang dihapus');
@@ -318,7 +318,7 @@ async function clearSO() {
   const n = S.so.length;
   if (!n) return toast('Tidak ada data opname');
   if (!confirm('Hapus SEMUA ' + n + ' entri Stock Opname? Termasuk semua fotonya.')) return;
-  if (!confirm('Yakin? Seluruh data Stock Opname akan dihapus permanen.')) return;
+  if (prompt('Ketik HAPUS (huruf besar) untuk konfirmasi:') !== 'HAPUS') return toast('Dibatalkan');
   const ids = S.so.map((s) => s.foto_id).filter(Boolean);
   try {
     await db.delAll('so');
