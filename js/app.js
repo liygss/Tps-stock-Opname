@@ -2,6 +2,7 @@ import { $, V, E, toast, modal, closeM } from './ui.js';
 import { LOGO } from './logo.js';
 import * as db from './db.js';
 import { downloadBlob, xlItems, xlSO, pdfItems, pdfSO, tplItems, needXLSX } from './export.js';
+import { renderDash } from './dash.js';
 
 let S = { items: [], so: [] };
 let page = 'so', sel = null, cur = {}, pf = null, q = '', qs = '', off = innerWidth < 800;
@@ -77,49 +78,20 @@ function go(p) {
 
 const fld = (l, id, v = '', t = 'text', x = '') => `<div><label>${l}</label><input id="${id}" type="${t}" value="${E(v)}" ${x}></div>`;
 function tbl(h, rows) { return `<div class="tw"><table><tr>${h.map((x) => `<th>${x}</th>`).join('')}</tr>${rows.join('') || `<tr><td colspan="${h.length}" class="empty">Belum ada data</td></tr>`}</table></div>`; }
-const num = (n) => Number(n || 0).toLocaleString('id-ID');
 
 /* ================= Dashboard ================= */
 function dashSet() { df.from = V('d_from'); df.to = V('d_to'); df.gd = V('d_gd'); go(); }
 function dfReset() { df = { from: '', to: '', gd: '' }; go(); }
-
-function dash() {
-  const gdAll = [...new Set(S.so.map((s) => s.gudang).filter(Boolean))].sort();
-  const inR = (s) => {
-    if (df.gd && (s.gudang || '') != df.gd) return false;
-    const t = String(s.tgl || '').slice(0, 10);
-    if (df.from && t < df.from) return false;
-    if (df.to && t > df.to) return false;
-    return true;
-  };
-  const L = S.so.filter(inR);
-  const totalFisik = L.reduce((a, s) => a + (Number(s.fisik) || 0), 0);
-  const withFoto = L.filter((s) => s.foto).length;
-
-  const cards = `<div class="cards"><div class="stat i1"><div class="lbl">Total Barang</div><b>${num(S.items.length)}</b></div><div class="stat i2"><div class="lbl">Entri Opname</div><b>${num(L.length)}</b></div><div class="stat i3"><div class="lbl">Total Stok Fisik</div><b>${num(totalFisik)}</b></div><div class="stat i4"><div class="lbl">Entri Berfoto</div><b>${num(withFoto)}</b></div></div>`;
-
-  const byGd = {};
-  L.forEach((s) => { const g = s.gudang || '(tanpa gudang)'; (byGd[g] ??= { n: 0, f: 0 }); byGd[g].n++; byGd[g].f += Number(s.fisik) || 0; });
-  const gdRows = Object.entries(byGd).sort((a, b) => b[1].f - a[1].f);
-  const maxF = Math.max(1, ...gdRows.map((r) => r[1].f));
-  const gdHtml = gdRows.length
-    ? `<div class="tw"><table><tr><th>Gudang</th><th>Entri</th><th>Total Fisik</th><th>Proporsi</th></tr>${gdRows.map(([g, v]) => `<tr><td>${E(g)}</td><td>${num(v.n)}</td><td><b>${num(v.f)}</b></td><td><div class="gbar"><i style="width:${Math.round((v.f / maxF) * 100)}%"></i></div></td></tr>`).join('')}</table></div>`
-    : `<p class="empty">Belum ada data</p>`;
-
-  const byKode = {};
-  L.forEach((s) => { const k = s.kode; (byKode[k] ??= { nama: s.nama, f: 0, n: 0 }); byKode[k].f += Number(s.fisik) || 0; byKode[k].n++; });
-  const top = Object.entries(byKode).sort((a, b) => b[1].f - a[1].f).slice(0, 5);
-  const topHtml = top.length
-    ? `<div class="tw"><table><tr><th>Kode</th><th>Nama</th><th>Entri</th><th>Total Fisik</th></tr>${top.map(([k, v]) => `<tr><td>${E(k)}</td><td>${E(v.nama)}</td><td>${num(v.n)}</td><td><b>${num(v.f)}</b></td></tr>`).join('')}</table></div>`
-    : `<p class="empty">Belum ada data</p>`;
-
-  const recent = [...L].sort((a, b) => String(b.tgl).localeCompare(String(a.tgl))).slice(0, 5);
-  const recentHtml = recent.length
-    ? `<div class="tw"><table><tr><th>Tanggal</th><th>Nomor</th><th>Kode</th><th>Nama</th><th>Fisik</th></tr>${recent.map((s) => `<tr><td>${fmt(s.tgl)}</td><td>${E(s.no)}</td><td>${E(s.kode)}</td><td>${E(s.nama)}</td><td><b>${E(s.fisik)}</b></td></tr>`).join('')}</table></div>`
-    : `<p class="empty">Belum ada data</p>`;
-
-  return `<div class="card"><div class="ch"><h3>Ringkasan</h3></div><div class="dfilter"><div><label>Dari Tanggal</label><input id="d_from" type="date" value="${E(df.from)}" onchange="dashSet()"></div><div><label>Sampai Tanggal</label><input id="d_to" type="date" value="${E(df.to)}" onchange="dashSet()"></div><div><label>Gudang</label><input id="d_gd" list="dgl" value="${E(df.gd)}" onchange="dashSet()" placeholder="Semua gudang"><datalist id="dgl">${gdAll.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><button class="s" onclick="dfReset()">Reset</button></div>${cards}<div class="dgrid"><div><h3 class="dh">Rekap per Gudang</h3>${gdHtml}</div><div><h3 class="dh">Top 5 Barang (Total Fisik)</h3>${topHtml}</div></div><h3 class="dh" style="margin-top:14px">Aktivitas Terbaru</h3>${recentHtml}</div>`;
+function dfPreset(n) {
+  if (!n) { df.from = ''; df.to = ''; }
+  else {
+    const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const to = new Date(), from = new Date(to.getTime() - (n - 1) * 864e5);
+    df.from = ymd(from); df.to = ymd(to);
+  }
+  go();
 }
+function dash() { return renderDash({ so: S.so, items: S.items, df }); }
 
 /* ================= Data Barang ================= */
 function editItem(kode) { sel = kode; go(); }
@@ -336,7 +308,7 @@ async function delSO(id) {
 
 /* ================= Ekspos handler inline ================= */
 Object.assign(window, {
-  go, toggleNav, closeNav, dashSet, dfReset,
+  go, toggleNav, closeNav, dashSet, dfReset, dfPreset,
   editItem, newItem, closeForm, setQ, dupChk, saveItem, delItem,
   expMenu, doExp, impOpen, impRead, impPrev, impGo, tplItems, closeM,
   closeSO, editSO, setQs, fill, pv, saveSO, delSO, dlFotoForm, dlFotoSO, viewFoto, pvZoom
