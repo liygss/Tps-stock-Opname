@@ -15,7 +15,6 @@ const ICO = {
   cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
   pie: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15.9A10 10 0 1 1 8.1 2.8"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>',
   chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>',
-  tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 11 3H4v7l9.6 9.6a2 2 0 0 0 2.8 0l4.2-4.2a2 2 0 0 0 0-2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>',
   trend: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="12" y="7" width="3" height="11"/><rect x="17" y="13" width="3" height="5"/></svg>'
 };
 const EMPTY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>';
@@ -108,13 +107,6 @@ export function renderDash({ so, items, df }) {
   L.forEach((s) => { const k = s.kode; (byKode[k] ??= { nama: s.nama, f: 0 }); byKode[k].f += Number(s.fisik) || 0; });
   const top = Object.entries(byKode).sort((a, b) => b[1].f - a[1].f).slice(0, 8).map(([k, v], i) => ({ label: v.nama || k, value: v.f, color: PALETTE[i % PALETTE.length] }));
 
-  // kategori
-  const katOf = {};
-  items.forEach((i) => { katOf[i.kode] = (i.kat || '').trim(); });
-  const byKat = {};
-  L.forEach((s) => { const k = (katOf[s.kode] || '').trim() || '(tanpa kategori)'; byKat[k] = (byKat[k] || 0) + (Number(s.fisik) || 0); });
-  const katRows = Object.entries(byKat).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([label, value], i) => ({ label, value, color: PALETTE[(i + 3) % PALETTE.length] }));
-
   // tren per hari (selalu rentang berkelanjutan)
   const map = {};
   L.forEach((s) => { const d = String(s.tgl || '').slice(0, 10); if (d) map[d] = (map[d] || 0) + 1; });
@@ -140,7 +132,7 @@ export function renderDash({ so, items, df }) {
   ${filter}
   <div class="kpis">${cards}</div>
   <div class="dgrid">${panel('Entri per Gudang', ICO.pie, donut(gdSeg, totalEntri), .05)}${panel('Top Barang (Total Fisik)', ICO.chart, hbars(top), .1)}</div>
-  <div class="dgrid">${panel('Tren Entri per Hari', ICO.trend, trend(days), .15)}${panel('Rekap per Kategori (Total Fisik)', ICO.tag, hbars(katRows), .2)}</div>
+  ${panel('Tren Entri per Hari', ICO.trend, trend(days), .15)}
   ${importPanel()}
-  ${panel('Aktivitas Terbaru', ICO.clock, actHtml, .25)}`;
+  ${panel('Aktivitas Terbaru', ICO.clock, actHtml, .2)}`;
 }
