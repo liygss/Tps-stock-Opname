@@ -45,6 +45,18 @@ aside button.x{margin-left:auto;color:#dbe6f3;border-color:#ffffff33}aside butto
 .sugitem b{flex:none;color:var(--sea)}
 .sugitem span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mu)}
 .sugitem em{flex:none;font-size:10px;color:var(--mar);font-style:normal}
+.rowin{display:flex;gap:8px;align-items:stretch}
+.rowin input{flex:1;min-width:0}
+.rowin button{flex:none;white-space:nowrap}
+.pklist{margin-top:10px;max-height:52vh;overflow:auto;border:1px solid var(--bd);border-radius:8px}
+.pkhint{position:sticky;top:0;background:var(--bg);color:var(--mu);font-size:11px;padding:6px 10px;border-bottom:1px solid var(--bd)}
+.pkitem{display:flex;align-items:center;gap:8px;padding:9px 10px;border-bottom:1px solid var(--bd);cursor:pointer;font-size:13px}
+.pkitem:last-child{border-bottom:0}
+.pkitem:hover{background:var(--bg)}
+.pkitem.used{opacity:.7}
+.pkkode{font-weight:600;color:var(--sea)}
+.pkitem.used .pkkode{color:var(--mu)}
+.pkitem em{margin-left:auto;font-size:10px;color:var(--mar);font-style:normal}
 a.abtn{display:inline-block;padding:9px 10px;background:var(--sea);color:#fff;border-radius:6px;text-decoration:none;cursor:pointer;font:inherit;text-align:center;border:0}
 a.abtn.s{background:#e7ecf1;color:#1b2430}
 a.abtn:hover{opacity:.9}
