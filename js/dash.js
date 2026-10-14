@@ -11,7 +11,7 @@ const ICO = {
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
   clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
-  cube: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>',
+  cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
   cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
   pie: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15.9A10 10 0 1 1 8.1 2.8"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>',
   chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>',
@@ -80,7 +80,6 @@ export function renderDash({ so, items, df }) {
   const gdAll = [...new Set(so.map((s) => s.gudang).filter(Boolean))].sort();
 
   const totalEntri = L.length;
-  const totalFisik = L.reduce((a, s) => a + (Number(s.fisik) || 0), 0);
   const withFoto = L.filter((s) => s.foto).length;
 
   const itemsTotal = items.length;
@@ -96,8 +95,7 @@ export function renderDash({ so, items, df }) {
     kpi(ICO.check, 'Sudah Diopname', num(sudah), covTxt + '% dari total', '#2d7a4f', .06),
     kpi(ICO.clock, 'Belum Diopname', num(belum), 'perlu diperiksa', '#b8860b', .1),
     kpi(ICO.list, 'Entri Opname', num(totalEntri), df.gd ? 'gudang: ' + df.gd : 'sesuai filter', '#8B2635', .14),
-    kpi(ICO.cube, 'Total Stok Fisik', num(totalFisik), 'akumulasi fisik', '#6b4c9a', .18),
-    kpi(ICO.cam, 'Entri Berfoto', num(withFoto), totalEntri ? pct(withFoto, totalEntri) + '% berfoto' : 'tanpa foto', '#0e8a8a', .22)
+    kpi(ICO.cam, 'Entri Berfoto', num(withFoto), totalEntri ? pct(withFoto, totalEntri) + '% berfoto' : 'tanpa foto', '#0e8a8a', .18)
   ].join('');
 
   // per gudang
