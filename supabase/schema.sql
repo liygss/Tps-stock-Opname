@@ -35,9 +35,22 @@ create index if not exists so_kode_idx on public.so (kode);
 create index if not exists so_no_idx   on public.so (no);
 create index if not exists so_tgl_idx  on public.so (tgl desc);
 
--- Cegah kode barang dobel di Stock Opname.
--- CATATAN: hapus dulu baris `so` yang kodenya duplikat sebelum menjalankan baris ini.
-create unique index if not exists so_kode_uidx on public.so (kode);
+-- Cegah kode barang dobel di Stock Opname (kunci di database).
+-- AKTIFKAN hanya setelah TIDAK ADA lagi baris `so` dengan kode duplikat,
+-- kalau tidak index ini akan gagal dibuat.
+-- Cek dulu:  select kode, count(*) from public.so group by kode having count(*) > 1;
+-- Hapus duplikat, lalu baru jalankan baris di bawah:
+-- create unique index if not exists so_kode_uidx on public.so (kode);
+
+-- Mencegah duplikat saat pemasangan tanpa error (opsional, otomatis dilewati bila masih ada dobel):
+do $$
+begin
+  if not exists (select 1 from public.so group by kode having count(*) > 1) then
+    create unique index if not exists so_kode_uidx on public.so (kode);
+  else
+    raise notice 'Unique index so.kode dilewati: masih ada kode duplikat.';
+  end if;
+end $$;
 
 -- ---------- Row Level Security (akses terbuka utk anon) ----------
 alter table public.items enable row level security;
