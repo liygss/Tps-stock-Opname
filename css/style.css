@@ -8,7 +8,8 @@ aside{width:230px;background:var(--navy);color:#fff;flex:none;transition:margin 
 aside.off{margin-left:-230px}
 .brand{padding:16px;display:flex;gap:10px;align-items:center;border-bottom:1px solid #ffffff22;font-weight:700}
 .brand small{display:block;font-weight:400;font-size:10px;opacity:.7}
-aside a{display:block;padding:11px 16px;color:#dbe6f3;cursor:pointer;border-left:3px solid transparent}
+aside a{display:flex;align-items:center;gap:10px;padding:11px 16px;color:#dbe6f3;cursor:pointer;border-left:3px solid transparent}
+.ic{width:18px;height:18px;flex:none;opacity:.9}
 aside a:hover{background:#ffffff14}aside a.on{background:#ffffff1f;border-color:var(--mar);color:#fff;font-weight:600}
 main{flex:1;min-width:0}
 header{background:var(--card);border-bottom:1px solid var(--bd);padding:10px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
@@ -39,3 +40,18 @@ aside button.x{margin-left:auto;color:#dbe6f3;border-color:#ffffff33}aside butto
 a.abtn{display:inline-block;padding:9px 10px;background:var(--sea);color:#fff;border-radius:6px;text-decoration:none;cursor:pointer;font:inherit;text-align:center;border:0}
 a.abtn.s{background:#e7ecf1;color:#1b2430}
 a.abtn:hover{opacity:.9}
+.dfilter{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:4px 0 14px}
+.dfilter>div{min-width:150px}
+.cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 16px}
+.stat .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--mu);font-weight:600}
+.stat b{display:block;font-size:24px;margin-top:6px;line-height:1.1}
+.stat.i1{border-left:4px solid var(--sea)}
+.stat.i2{border-left:4px solid #2d7a4f}
+.stat.i3{border-left:4px solid #b8860b}
+.stat.i4{border-left:4px solid var(--mar)}
+.dgrid{display:grid;gap:16px;grid-template-columns:1fr 1fr}
+@media(max-width:760px){.dgrid{grid-template-columns:1fr}}
+.dh{font-size:14px;margin:6px 0}
+.gbar{height:8px;background:var(--bd);border-radius:99px;overflow:hidden;min-width:80px}
+.gbar>i{display:block;height:100%;background:var(--sea);border-radius:99px}

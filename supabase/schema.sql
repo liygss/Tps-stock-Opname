@@ -35,6 +35,10 @@ create index if not exists so_kode_idx on public.so (kode);
 create index if not exists so_no_idx   on public.so (no);
 create index if not exists so_tgl_idx  on public.so (tgl desc);
 
+-- Cegah kode barang dobel di Stock Opname.
+-- CATATAN: hapus dulu baris `so` yang kodenya duplikat sebelum menjalankan baris ini.
+create unique index if not exists so_kode_uidx on public.so (kode);
+
 -- ---------- Row Level Security (akses terbuka utk anon) ----------
 alter table public.items enable row level security;
 alter table public.so    enable row level security;
