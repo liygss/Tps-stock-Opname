@@ -106,15 +106,6 @@ export function renderDash({ so, items, df }) {
     days = keys.slice(-14).map((k) => ({ k, value: map[k], short: k.slice(8) + '/' + k.slice(5, 7) }));
   }
 
-  // perlu perhatian (global)
-  const grp = {};
-  so.forEach((s) => { if (s.kode) (grp[s.kode] ??= { n: 0, nama: s.nama }); if (s.kode) grp[s.kode].n++; });
-  const dupes = Object.entries(grp).filter(([, v]) => v.n > 1).sort((a, b) => b[1].n - a[1].n);
-  const noFoto = L.filter((s) => !s.foto).length;
-  const dupList = dupes.length
-    ? `<div class="minilist">${dupes.slice(0, 6).map(([k, v]) => `<div class="mi"><span class="micode">${E(k)}</span><span class="miname">${E(v.nama || '')}</span><span class="chip e">${v.n} entri</span></div>`).join('')}</div>${dupes.length > 6 ? `<p class="hint">+${dupes.length - 6} lagi…</p>` : ''}`
-    : `<div class="ok">Tidak ada kode duplikat.</div>`;
-
   // aktivitas terbaru
   const recent = [...L].sort((a, b) => String(b.tgl).localeCompare(String(a.tgl))).slice(0, 6);
   const actHtml = recent.length
@@ -130,5 +121,5 @@ export function renderDash({ so, items, df }) {
   <div class="kpis">${cards}</div>
   <div class="dgrid">${panel('Entri per Gudang', donut(gdSeg, totalEntri))}${panel('Top Barang (Total Fisik)', hbars(top))}</div>
   <div class="dgrid">${panel('Tren Entri per Hari', trend(days))}${panel('Rekap per Kategori (Total Fisik)', hbars(katRows))}</div>
-  <div class="dgrid">${panel('Perlu Perhatian', `<div class="attnrow"><div class="attnstat"><span class="klbl">Kode Duplikat</span><b class="${dupes.length ? 'bad' : 'ok'}">${num(dupes.length)}</b></div><div class="attnstat"><span class="klbl">Entri Tanpa Foto</span><b class="${noFoto ? 'warn' : 'ok'}">${num(noFoto)}</b></div></div>${dupList}`)}${panel('Aktivitas Terbaru', actHtml)}</div>`;
+  ${panel('Aktivitas Terbaru', actHtml)}`;
 }
