@@ -4,7 +4,7 @@ const num = (n) => Number(n || 0).toLocaleString('id-ID');
 const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : 0);
 const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const fmt = (t) => (t ? new Date(t).toLocaleString('id-ID') : '-');
-const PALETTE = ['#176B9A', '#2d7a4f', '#b8860b', '#8B2635', '#6b4c9a', '#0e8a8a', '#c2603a', '#3f6fb5'];
+const PALETTE = ['#176B9A', '#2d7a4f', '#b8860b', '#8B2635', '#5b6cc0', '#0e8a8a', '#c2603a', '#6b4c9a'];
 
 const ICO = {
   box: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M21 8l-9 5-9-5"/></svg>',
@@ -12,17 +12,28 @@ const ICO = {
   clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
   cube: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>',
-  cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>'
+  cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  pie: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15.9A10 10 0 1 1 8.1 2.8"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>',
+  tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 11 3H4v7l9.6 9.6a2 2 0 0 0 2.8 0l4.2-4.2a2 2 0 0 0 0-2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>',
+  trend: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="12" y="7" width="3" height="11"/><rect x="17" y="13" width="3" height="5"/></svg>'
 };
+const EMPTY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>';
+const empty = (m) => `<div class="chartempty">${EMPTY}<span>${m}</span></div>`;
 
-function panel(title, body, extra = '') {
-  return `<section class="panel"><div class="phead"><h3>${title}</h3>${extra}</div>${body}</section>`;
+function panel(title, icon, body, delay = 0) {
+  return `<section class="panel dash-anim" style="animation-delay:${delay}s"><div class="phead"><span class="pic">${icon}</span><h3>${title}</h3></div>${body}</section>`;
 }
-function kpi(icon, label, value, sub, accent) {
-  return `<div class="kpi" style="--acc:${accent}"><div class="kico">${icon}</div><div class="kbody"><div class="klbl">${label}</div><b>${value}</b>${sub ? `<div class="ksub">${sub}</div>` : ''}</div></div>`;
+function kpi(icon, label, value, sub, accent, delay) {
+  return `<div class="kpi dash-anim" style="--acc:${accent};animation-delay:${delay}s"><div class="kico">${icon}</div><div class="kbody"><div class="klbl">${label}</div><b>${value}</b>${sub ? `<div class="ksub">${sub}</div>` : ''}</div></div>`;
+}
+function ring(frac, txt) {
+  const C = 2 * Math.PI * 52;
+  const off = C * (1 - Math.max(0, Math.min(1, frac)));
+  return `<div class="ringwrap"><svg class="ring" viewBox="0 0 120 120"><circle class="ring-track" cx="60" cy="60" r="52"/><circle class="ring-fill" cx="60" cy="60" r="52" style="--c:${C.toFixed(1)};--off:${off.toFixed(1)}"/></svg><div class="ringlab"><b>${txt}%</b><span>diopname</span></div></div>`;
 }
 function donut(segments, total) {
-  if (!total) return `<div class="chartempty">Belum ada data</div>`;
+  if (!total) return empty('Belum ada data');
   let acc = 0;
   const stops = segments.filter((s) => s.value > 0).map((s) => {
     const start = (acc / total) * 100; acc += s.value; const end = (acc / total) * 100;
@@ -31,15 +42,16 @@ function donut(segments, total) {
   return `<div class="donutwrap"><div class="donut" style="background:conic-gradient(${stops})"><div class="donut-hole"><b>${num(total)}</b><span>entri</span></div></div><div class="legend">${segments.filter((s) => s.value > 0).map((s) => `<div class="lg"><span class="dot" style="background:${s.color}"></span><span class="lglbl">${E(s.label)}</span><b>${num(s.value)}</b><span class="lgpct">${pct(s.value, total)}%</span></div>`).join('') || ''}</div></div>`;
 }
 function hbars(rows, fmtv = num) {
-  if (!rows.length) return `<div class="chartempty">Belum ada data</div>`;
+  if (!rows.length) return empty('Belum ada data');
   const max = Math.max(1, ...rows.map((r) => r.value));
-  return `<div class="hbars">${rows.map((r) => `<div class="hbar"><div class="hbtop"><span class="hblbl" title="${E(r.label)}">${E(r.label)}</span><b>${fmtv(r.value)}</b></div><div class="hbtrack"><i style="width:${Math.round((r.value / max) * 100)}%;background:${r.color}"></i></div></div>`).join('')}</div>`;
+  return `<div class="hbars">${rows.map((r) => `<div class="hbar"><div class="hbtop"><span class="hblbl" title="${E(r.label)}">${E(r.label)}</span><span class="hbval">${fmtv(r.value)}</span></div><div class="hbtrack"><i style="width:${Math.max(4, Math.round((r.value / max) * 100))}%;background:linear-gradient(90deg,${r.color},${r.color}bb)"></i></div></div>`).join('')}</div>`;
 }
 function trend(days) {
-  if (!days.length) return `<div class="chartempty">Belum ada data</div>`;
+  if (!days.length) return empty('Belum ada data');
   const max = Math.max(1, ...days.map((d) => d.value));
+  let maxIdx = -1; days.forEach((d, i) => { if (d.value === max && max > 1) maxIdx = i; });
   const showVal = days.length <= 20;
-  const cols = days.map((d) => `<div class="tcol" title="${d.k}: ${num(d.value)} entri"><span class="tval">${showVal && d.value ? num(d.value) : ''}</span><div class="tbarwrap"><i style="height:${d.value ? Math.max(4, Math.round((d.value / max) * 100)) : 0}%"></i></div><span class="tlab">${d.short}</span></div>`).join('');
+  const cols = days.map((d, i) => `<div class="tcol ${i === maxIdx ? 'max' : ''}" title="${d.k}: ${num(d.value)} entri"><span class="tval">${showVal && d.value ? num(d.value) : ''}</span><div class="tbarwrap"><i style="height:${d.value ? Math.max(4, Math.round((d.value / max) * 100)) : 0}%"></i></div><span class="tlab">${d.short}</span></div>`).join('');
   return `<div class="trendwrap"><div class="tyaxis"><span>${num(max)}</span><span>${Math.round(max / 2)}</span><span>0</span></div><div class="trendscroll"><div class="trend">${cols}</div></div></div>`;
 }
 
@@ -64,16 +76,16 @@ export function renderDash({ so, items, df }) {
   const cov = pct(sudah, itemsTotal);
   const covTxt = itemsTotal ? Math.round((sudah / itemsTotal) * 1000) / 10 : 0;
 
-  const cards = [
-    kpi(ICO.box, 'Total Barang', num(itemsTotal), 'di Data Barang', 'var(--sea)'),
-    kpi(ICO.check, 'Sudah Diopname', num(sudah), covTxt + '% dari total', '#2d7a4f'),
-    kpi(ICO.clock, 'Belum Diopname', num(belum), 'perlu diperiksa', '#b8860b'),
-    kpi(ICO.list, 'Entri Opname', num(totalEntri), df.gd ? 'gudang: ' + df.gd : 'sesuai filter', 'var(--mar)'),
-    kpi(ICO.cube, 'Total Stok Fisik', num(totalFisik), 'akumulasi fisik', '#6b4c9a'),
-    kpi(ICO.cam, 'Entri Berfoto', num(withFoto), totalEntri ? pct(withFoto, totalEntri) + '% berfoto' : 'tanpa foto', '#0e8a8a')
-  ].join('');
+  const hero = `<section class="hero dash-anim"><div class="hero-main"><div class="hero-eyebrow">Dashboard</div><h1>Ringkasan Stock Opname</h1><div class="hero-upd">Diperbarui ${new Date().toLocaleString('id-ID')}</div><div class="hero-stats"><div><b>${num(sudah)}</b><span>Sudah diopname</span></div><div><b>${num(belum)}</b><span>Belum</span></div><div><b>${num(itemsTotal)}</b><span>Total barang</span></div></div><div class="hero-prog"><i style="width:${cov}%"></i></div></div>${ring(sudah / (itemsTotal || 1), covTxt)}</section>`;
 
-  const coverage = `<div class="coverage"><div class="covtop"><span>Progress Opname</span><b>${covTxt}%</b></div><div class="covtrack"><i style="width:${cov}%"></i></div><div class="covsub">${num(sudah)} dari ${num(itemsTotal)} barang sudah diopname · ${num(belum)} belum</div></div>`;
+  const cards = [
+    kpi(ICO.box, 'Total Barang', num(itemsTotal), 'di Data Barang', '#176B9A', .02),
+    kpi(ICO.check, 'Sudah Diopname', num(sudah), covTxt + '% dari total', '#2d7a4f', .06),
+    kpi(ICO.clock, 'Belum Diopname', num(belum), 'perlu diperiksa', '#b8860b', .1),
+    kpi(ICO.list, 'Entri Opname', num(totalEntri), df.gd ? 'gudang: ' + df.gd : 'sesuai filter', '#8B2635', .14),
+    kpi(ICO.cube, 'Total Stok Fisik', num(totalFisik), 'akumulasi fisik', '#6b4c9a', .18),
+    kpi(ICO.cam, 'Entri Berfoto', num(withFoto), totalEntri ? pct(withFoto, totalEntri) + '% berfoto' : 'tanpa foto', '#0e8a8a', .22)
+  ].join('');
 
   // per gudang
   const byGd = {};
@@ -83,19 +95,21 @@ export function renderDash({ so, items, df }) {
   // top barang
   const byKode = {};
   L.forEach((s) => { const k = s.kode; (byKode[k] ??= { nama: s.nama, f: 0 }); byKode[k].f += Number(s.fisik) || 0; });
-  const top = Object.entries(byKode).sort((a, b) => b[1].f - a[1].f).slice(0, 8).map(([k, v]) => ({ label: v.nama || k, value: v.f }));
+  const top = Object.entries(byKode).sort((a, b) => b[1].f - a[1].f).slice(0, 8).map(([k, v], i) => ({ label: v.nama || k, value: v.f, color: PALETTE[i % PALETTE.length] }));
 
   // kategori
   const katOf = {};
   items.forEach((i) => { katOf[i.kode] = (i.kat || '').trim(); });
   const byKat = {};
   L.forEach((s) => { const k = (katOf[s.kode] || '').trim() || '(tanpa kategori)'; byKat[k] = (byKat[k] || 0) + (Number(s.fisik) || 0); });
-  const katRows = Object.entries(byKat).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([label, value], i) => ({ label, value, color: PALETTE[(i + 4) % PALETTE.length] }));
+  const katRows = Object.entries(byKat).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([label, value], i) => ({ label, value, color: PALETTE[(i + 3) % PALETTE.length] }));
 
   // tren per hari (selalu rentang berkelanjutan)
   const map = {};
   L.forEach((s) => { const d = String(s.tgl || '').slice(0, 10); if (d) map[d] = (map[d] || 0) + 1; });
-  const end = df.to ? new Date(df.to + 'T00:00:00') : new Date();
+  const keys = Object.keys(map).sort();
+  let end = df.to ? new Date(df.to + 'T00:00:00') : new Date();
+  if (!df.to && keys.length) { const last = new Date(keys[keys.length - 1] + 'T00:00:00'); if (last > end) end = last; }
   const start = df.from ? new Date(df.from + 'T00:00:00') : new Date(end.getTime() - 13 * 864e5);
   const days = [];
   for (let d = new Date(start); d <= end && days.length < 93; d.setDate(d.getDate() + 1)) {
@@ -106,16 +120,15 @@ export function renderDash({ so, items, df }) {
   const recent = [...L].sort((a, b) => String(b.tgl).localeCompare(String(a.tgl))).slice(0, 6);
   const actHtml = recent.length
     ? `<div class="acts">${recent.map((s) => `<div class="act"><div class="actthumb">${s.foto ? `<img class="thumb" src="${E(s.foto)}" alt="foto" onclick="viewFoto('${s.id}')">` : '<span class="nofoto">—</span>'}</div><div class="actbody"><b>${E(s.nama || s.kode)}</b><span>${E(s.no)} · ${E(s.kode)}${s.gudang ? ' · ' + E(s.gudang) : ''}</span><span class="muted">${fmt(s.tgl)}</span></div><div class="actval"><b>${E(s.fisik)}</b><span>${E(s.satuan || '')}</span></div></div>`).join('')}</div>`
-    : `<div class="chartempty">Belum ada data</div>`;
+    : empty('Belum ada data');
 
   const presets = `<div class="dseg"><button class="s" onclick="dfPreset(1)">Hari Ini</button><button class="s" onclick="dfPreset(7)">7 Hari</button><button class="s" onclick="dfPreset(30)">30 Hari</button><button class="s" onclick="dfPreset(0)">Semua</button></div>`;
-  const filter = `<div class="dfilter">${presets}<div><label>Dari Tanggal</label><input id="d_from" type="date" value="${E(df.from)}" onchange="dashSet()"></div><div><label>Sampai Tanggal</label><input id="d_to" type="date" value="${E(df.to)}" onchange="dashSet()"></div><div><label>Gudang</label><input id="d_gd" list="dgl" value="${E(df.gd)}" onchange="dashSet()" placeholder="Semua gudang"><datalist id="dgl">${gdAll.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><button class="s" onclick="dfReset()">Reset</button></div>`;
+  const filter = `<div class="dfilter dash-anim" style="animation-delay:.02s">${presets}<div><label>Dari Tanggal</label><input id="d_from" type="date" value="${E(df.from)}" onchange="dashSet()"></div><div><label>Sampai Tanggal</label><input id="d_to" type="date" value="${E(df.to)}" onchange="dashSet()"></div><div><label>Gudang</label><input id="d_gd" list="dgl" value="${E(df.gd)}" onchange="dashSet()" placeholder="Semua gudang"><datalist id="dgl">${gdAll.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><button class="s" onclick="dfReset()">Reset</button></div>`;
 
-  return `${filter}
-  <div class="dhead"><h2>Ringkasan Stock Opname</h2><span class="muted">Diperbarui ${new Date().toLocaleString('id-ID')}</span></div>
-  ${coverage}
+  return `${hero}
+  ${filter}
   <div class="kpis">${cards}</div>
-  <div class="dgrid">${panel('Entri per Gudang', donut(gdSeg, totalEntri))}${panel('Top Barang (Total Fisik)', hbars(top))}</div>
-  <div class="dgrid">${panel('Tren Entri per Hari', trend(days))}${panel('Rekap per Kategori (Total Fisik)', hbars(katRows))}</div>
-  ${panel('Aktivitas Terbaru', actHtml)}`;
+  <div class="dgrid">${panel('Entri per Gudang', ICO.pie, donut(gdSeg, totalEntri), .05)}${panel('Top Barang (Total Fisik)', ICO.chart, hbars(top), .1)}</div>
+  <div class="dgrid">${panel('Tren Entri per Hari', ICO.trend, trend(days), .15)}${panel('Rekap per Kategori (Total Fisik)', ICO.tag, hbars(katRows), .2)}</div>
+  ${panel('Aktivitas Terbaru', ICO.clock, actHtml, .25)}`;
 }
