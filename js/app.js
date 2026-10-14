@@ -9,7 +9,9 @@ let page = 'so', sel = null, cur = {}, pf = null, q = '', qs = '', off = innerWi
 let df = { from: '', to: '', gd: '' };
 let lastSig = '';
 
-const itm = (k) => S.items.find((i) => i.kode == k);
+let itemMap = new Map();
+const reindex = () => { itemMap = new Map(S.items.map((i) => [i.kode, i])); };
+const itm = (k) => itemMap.get(k);
 const nowL = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
 const fmt = (t) => (t ? new Date(t).toLocaleString('id-ID') : '-');
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -18,12 +20,14 @@ const sig = () => JSON.stringify(S.items) + '|' + JSON.stringify(S.so);
 async function save(c, o) {
   const i = S[c].findIndex((x) => x.id == o.id);
   i < 0 ? S[c].push(o) : (S[c][i] = o);
+  if (c == 'items') reindex();
   lastSig = sig();
   try { await db.save(c, o); } catch (e) { toast('Gagal menyimpan: ' + errMsg(e)); }
   go();
 }
 async function del(c, id) {
   S[c] = S[c].filter((x) => x.id != id);
+  if (c == 'items') reindex();
   lastSig = sig();
   try { await db.del(c, id); } catch (e) { toast('Gagal menghapus: ' + errMsg(e)); }
   go();
@@ -38,6 +42,7 @@ async function boot() {
     const data = await db.listAll();
     S.items = data.items;
     S.so = data.so;
+    reindex();
     lastSig = sig();
   } catch (e) {
     toast('Gagal memuat data: ' + errMsg(e) + ' — periksa js/config.js');
@@ -57,6 +62,7 @@ async function reload() {
     lastSig = s;
     S.items = d.items;
     S.so = d.so;
+    reindex();
     go();
   } catch (e) {}
 }
@@ -97,7 +103,8 @@ function dash() { return renderDash({ so: S.so, items: S.items, df }); }
 function editItem(kode) { sel = kode; go(); }
 function newItem() { sel = ''; go(); }
 function closeForm() { sel = null; go(); }
-function setQ(v) { q = v; go(); const e = $('#q'); if (e) { e.focus(); e.setSelectionRange(99, 99); } }
+let qT;
+function setQ(v) { q = v; clearTimeout(qT); qT = setTimeout(() => { go(); const e = $('#q'); if (e) { e.focus(); e.setSelectionRange(99, 99); } }, 200); }
 
 function items() {
   if (sel !== null) {
@@ -126,7 +133,7 @@ async function clearItems() {
   if (!confirm('Hapus SEMUA ' + n + ' data barang? Tindakan ini tidak bisa dibatalkan.')) return;
   if (prompt('Ketik HAPUS (huruf besar) untuk konfirmasi:') !== 'HAPUS') return toast('Dibatalkan');
   try { await db.delAll('items'); } catch (e) { return toast('Gagal menghapus: ' + errMsg(e)); }
-  S.items = []; lastSig = sig(); go();
+  S.items = []; reindex(); lastSig = sig(); go();
   toast(n + ' data barang dihapus');
 }
 
@@ -197,24 +204,34 @@ function impPrev() {
   v.innerHTML = `<div class="bar" style="margin-top:8px"><span class="chip n">${c.n} baru</span><span class="chip u">${c.u} sudah ada ${ow ? '(ditimpa)' : '(dilewati)'}</span><span class="chip e">${c.e} error</span></div><div class="tw" style="max-height:38vh;overflow:auto">${tbl(['Status', 'Kode', 'Nama', 'Satuan', 'Keterangan'], IMP.slice(0, 100).map((x) => `<tr><td><span class="chip ${x.st}">${x.st == 'n' ? 'Baru' : x.st == 'u' ? (ow ? 'Timpa' : 'Lewati') : 'Error'}</span></td><td>${E(x.o.kode)}</td><td>${E(x.o.nama)}</td><td>${E(x.o.satuan)}</td><td>${E(x.msg)}</td></tr>`))}</div>${IMP.length > 100 ? `<p class="hint">Menampilkan 100 dari ${IMP.length} baris.</p>` : ''}<div class="bar" style="margin-top:12px"><button ${ok ? '' : 'disabled'} onclick="impGo()">Impor ${ok} barang</button><button class="s" onclick="closeM()">Batal</button></div>`;
 }
 
+let importing = false;
 async function impGo() {
+  if (importing) return;
   const ow = $('#impo')?.checked, now = new Date().toISOString();
   let n = 0, u = 0, sk = 0, er = 0;
-  const jobs = [];
+  const rows = [];
   for (const x of IMP) {
     if (x.st == 'e') { er++; continue; }
     const ex = itm(x.o.kode);
     if (ex && !ow) { sk++; continue; }
-    const o = { id: ex ? ex.id : x.o.kode, kode: x.o.kode, akun: x.o.akun || '', nama: x.o.nama, kat: x.o.kat || '', satuan: x.o.satuan, gudang: x.o.gudang || '', lokasi: x.o.lokasi || '', upd: now };
-    const i = S.items.findIndex((z) => z.id == o.id);
-    i < 0 ? S.items.push(o) : (S.items[i] = o);
+    rows.push({ id: ex ? ex.id : x.o.kode, kode: x.o.kode, akun: x.o.akun || '', nama: x.o.nama, kat: x.o.kat || '', satuan: x.o.satuan, gudang: x.o.gudang || '', lokasi: x.o.lokasi || '', upd: now });
     ex ? u++ : n++;
-    jobs.push(db.save('items', o));
   }
-  let fail = 0;
-  if (jobs.length) fail = (await Promise.allSettled(jobs)).filter((r) => r.status == 'rejected').length;
-  closeM(); go();
-  toast(n + ' barang baru, ' + u + ' diperbarui' + (sk ? ', ' + sk + ' dilewati' : '') + (er ? ', ' + er + ' error' : '') + (fail ? '. ' + fail + ' gagal disimpan ke database' : ''));
+  if (!rows.length) { closeM(); return toast('Tidak ada baris untuk diimpor'); }
+  importing = true;
+  const status = $('#impv');
+  try {
+    const res = await db.saveMany('items', rows, 500, (done, total) => { if (status) status.innerHTML = `<p class="hint">Menyimpan ${done}/${total}…</p>`; });
+    const d = await db.listAll();
+    S.items = d.items; S.so = d.so; reindex(); lastSig = sig();
+    closeM();
+    toast(n + ' baru, ' + u + ' diperbarui' + (sk ? ', ' + sk + ' dilewati' : '') + (er ? ', ' + er + ' error' : '') + (res.fail ? '. ' + res.fail + ' gagal disimpan' : ''));
+  } catch (e) {
+    toast('Impor gagal: ' + errMsg(e));
+  } finally {
+    importing = false;
+  }
+  go();
 }
 
 /* ================= Stock Opname ================= */
@@ -234,7 +251,7 @@ function so() {
   const L = S.so.filter((s) => !qs || (s.kode + s.nama + s.no).toLowerCase().includes(qs.toLowerCase())).sort((a, b) => b.tgl.localeCompare(a.tgl));
   const gd = [...new Set(S.items.map((i) => i.gudang).filter(Boolean))];
   const no = c.no || nextNo();
-  return `<div class="card"><div class="ch"><h3>${c.id ? 'Ubah' : 'Form'} Stock Opname</h3>${c.id ? `<button class="x" title="Kembali" aria-label="Kembali" onclick="closeSO()">✕</button>` : ''}</div><div class="form">${fld('Nomor Stock Opname', 's_no', no)}${fld('Tanggal & Waktu', 's_tgl', c.tgl || nowL(), 'datetime-local')}${fld('Kode Akun (otomatis dari Data Barang)', 's_akun', c.akun, 'text', 'readonly')}<div><label>Gudang</label><input id="s_gd" list="gl" value="${E(c.gudang)}"><datalist id="gl">${gd.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><div><label>Kode Barang</label><input id="s_kode" list="kl" value="${E(c.kode)}" onchange="fill()" placeholder="Ketik / pilih kode"><datalist id="kl">${S.items.map((i) => { const used = S.so.some((s) => s.kode == i.kode && s.id != (cur.id || '')); return `<option value="${E(i.kode)}">${E(i.nama)}${used ? ' (sudah diinput)' : ''}</option>`; }).join('')}</datalist><div id="s_dup" class="hint" style="color:var(--mar);display:none"></div></div>${fld('Nama Barang', 's_nama', c.nama, 'text', 'readonly')}${fld('Satuan', 's_sat', c.satuan, 'text', 'readonly')}${fld('Stok Fisik', 's_fisik', c.fisik, 'number', 'min="0" step="any"')}<div><label>Foto Fisik Barang</label><input id="s_foto" type="file" accept="image/jpeg,image/png,image/webp" onchange="pv(this.files[0])"><img id="pv" src="${E(c.foto)}" style="margin-top:8px;max-height:130px;border-radius:6px;cursor:pointer;display:${c.foto ? 'block' : 'none'}" onclick="pvZoom()" title="Klik untuk perbesar"><div class="bar" style="margin-top:8px"><button type="button" class="s" onclick="dlFotoForm()">Download Foto</button></div></div></div><div class="bar" style="margin-top:14px"><button onclick="saveSO()">Simpan</button><button class="s" onclick="closeSO()">Baru / Batal</button></div></div>
+  return `<div class="card"><div class="ch"><h3>${c.id ? 'Ubah' : 'Form'} Stock Opname</h3>${c.id ? `<button class="x" title="Kembali" aria-label="Kembali" onclick="closeSO()">✕</button>` : ''}</div><div class="form">${fld('Nomor Stock Opname', 's_no', no)}${fld('Tanggal & Waktu', 's_tgl', c.tgl || nowL(), 'datetime-local')}${fld('Kode Akun (otomatis dari Data Barang)', 's_akun', c.akun, 'text', 'readonly')}<div><label>Gudang</label><input id="s_gd" list="gl" value="${E(c.gudang)}"><datalist id="gl">${gd.map((g) => `<option value="${E(g)}">`).join('')}</datalist></div><div class="acbox"><label>Kode Barang</label><input id="s_kode" autocomplete="off" value="${E(c.kode)}" oninput="kodSug(this.value)" onchange="fill()" onblur="kodHide()" placeholder="Ketik kode / nama"><div id="s_sug" class="sug" style="display:none"></div><div id="s_dup" class="hint" style="color:var(--mar);display:none"></div></div>${fld('Nama Barang', 's_nama', c.nama, 'text', 'readonly')}${fld('Satuan', 's_sat', c.satuan, 'text', 'readonly')}${fld('Stok Fisik', 's_fisik', c.fisik, 'number', 'min="0" step="any"')}<div><label>Foto Fisik Barang</label><input id="s_foto" type="file" accept="image/jpeg,image/png,image/webp" onchange="pv(this.files[0])"><img id="pv" src="${E(c.foto)}" style="margin-top:8px;max-height:130px;border-radius:6px;cursor:pointer;display:${c.foto ? 'block' : 'none'}" onclick="pvZoom()" title="Klik untuk perbesar"><div class="bar" style="margin-top:8px"><button type="button" class="s" onclick="dlFotoForm()">Download Foto</button></div></div></div><div class="bar" style="margin-top:14px"><button onclick="saveSO()">Simpan</button><button class="s" onclick="closeSO()">Baru / Batal</button></div></div>
   <div class="card"><div class="bar"><input id="qs" placeholder="Cari nomor / kode / nama" value="${E(qs)}" oninput="setQs(this.value)"><button class="g" onclick="expMenu('so')">Export</button><button class="d" onclick="clearSO()">Hapus Semua</button></div>${tbl(['Nomor', 'Tanggal', 'Kode Akun', 'Gudang', 'Kode', 'Nama Barang', 'Fisik', 'Satuan', 'Foto', ''], L.map((s) => `<tr><td>${E(s.no)}</td><td>${fmt(s.tgl)}</td><td>${E(s.akun || itm(s.kode)?.akun)}</td><td>${E(s.gudang)}</td><td>${E(s.kode)}</td><td>${E(s.nama)}</td><td><b>${E(s.fisik)}</b></td><td>${E(s.satuan)}</td><td>${s.foto ? `<a href="${E(s.foto)}" onclick="viewFoto('${s.id}');return false" title="Lihat foto"><img class="thumb" src="${E(s.foto)}" alt="foto"></a>` : '-'}</td><td style="white-space:nowrap"><button class="s" onclick="editSO('${s.id}')">Ubah</button> <button class="d" onclick="delSO('${s.id}')">Hapus</button></td></tr>`))}</div>`;
 }
 
@@ -253,6 +270,25 @@ function fill() {
   }
   if (!it && kode) toast('Kode barang tidak terdaftar di Data Barang');
 }
+function kodHide() { const b = $('#s_sug'); if (b) b.style.display = 'none'; }
+function kodSug(v) {
+  const box = $('#s_sug');
+  if (!box) return;
+  const s = String(v || '').trim().toLowerCase();
+  if (!s) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const used = new Set(S.so.filter((x) => x.id != cur.id).map((x) => x.kode));
+  const out = [];
+  for (const i of S.items) {
+    if (i.kode.toLowerCase().includes(s) || (i.nama || '').toLowerCase().includes(s)) {
+      out.push(i);
+      if (out.length >= 30) break;
+    }
+  }
+  if (!out.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.innerHTML = out.map((i) => `<div class="sugitem" onmousedown="pickKode('${E(i.kode)}')"><b>${E(i.kode)}</b><span>${E(i.nama || '')}</span>${used.has(i.kode) ? '<em>sudah diinput</em>' : ''}</div>`).join('');
+  box.style.display = 'block';
+}
+function pickKode(k) { const inp = $('#s_kode'); if (inp) inp.value = k; kodHide(); fill(); }
 function pv(f) { pf = f; const i = $('#pv'); if (f) { i.src = URL.createObjectURL(f); i.style.display = 'block'; } }
 
 /* ================= Download foto ================= */
@@ -333,7 +369,7 @@ Object.assign(window, {
   go, toggleNav, closeNav, dashSet, dfReset, dfPreset,
   editItem, newItem, closeForm, setQ, dupChk, saveItem, delItem, clearItems,
   expMenu, doExp, impOpen, impRead, impPrev, impGo, tplItems, closeM,
-  closeSO, editSO, setQs, fill, pv, saveSO, delSO, clearSO, dlFotoForm, dlFotoSO, viewFoto, pvZoom
+  closeSO, editSO, setQs, fill, pv, saveSO, delSO, clearSO, dlFotoForm, dlFotoSO, viewFoto, pvZoom, kodSug, kodHide, pickKode
 });
 
 boot();
