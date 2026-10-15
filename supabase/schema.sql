@@ -27,9 +27,15 @@ create table if not exists public.so (
   nama     text,
   satuan   text,
   fisik    numeric not null default 0,
+  lokasi   text default '',
+  "user"   text default '',
   foto     text default '',
   foto_id  text default ''
 );
+
+-- Tambahan kolom (aman dijalankan ulang bila tabel sudah pernah dibuat)
+alter table public.so add column if not exists lokasi text default '';
+alter table public.so add column if not exists "user" text default '';
 
 create index if not exists so_kode_idx on public.so (kode);
 create index if not exists so_no_idx   on public.so (no);
